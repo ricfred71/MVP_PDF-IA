@@ -7,7 +7,7 @@
 - Respeitando a LGPD ([Lei Geral de Proteção de Dados Pessoais](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm));
 - Além destes, foi observado nos debates iniciais do grupo, que um desenvolvedor tinha dificuldade de apresentar alguma proposta, pois não tinha acesso direto aos documentos necessários, em função da especificidade do sistema SISCAP.
 
-## A solução apresentada traz as seguintes vantagens:
+## A solução apresentada, como uma extensão para o Chrome, traz as seguintes vantagens:
 1) Automação da anonimização de dados da LGPD, por meio de Tokenização Semântica Reversível. Este método, resumidamente, consiste em identificar os dados sensíveis, e trocá-los por strings de sentido vago, mas inteligíveis para as LLMs (IAs), por exemplo, trocar o nome da requerente: "João Pardal", por "requerente_1", no texto enviado para tratamento pela IA, o vai evitar ou diminuir a probabilidade do texto ser identificado e atribuído à algum processo específico.
 2) Por ser uma unidade isolada, fora de um sistema maior, mais complexo, a solução presta-se para testes rápidos de prompts e IAs diferentes.
 3) Contorna o problema de falta de acesso aos documentos do Siscap, pois trabalha com a leitura de pdfs, gerados pelo mesmo, e de forma independente dos sistema. Sendo útil tanto para Marcas, como para Patentes.
@@ -71,3 +71,6 @@ A escolha deste tipo de petição foi pautada, por ser ela o maior quantitativo 
 
 - Expandir para novos tipos de documentos
 - Adicionar mais opções de Inteligência Artificial
+
+
+Obs.: A pasta 'ArquivosInpiParaTestes' possuem documentos que podem ser usados para testar a extensão.
