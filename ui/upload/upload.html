@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IA Análise Jurídica</title>
+  <link rel="stylesheet" href="upload.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header com tema brasileiro -->
+    <header class="header">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Losango estilizado (referência à bandeira) -->
+            <path d="M24 4 L44 24 L24 44 L4 24 Z" fill="url(#gradient1)" />
+            <!-- Símbolo de documento -->
+            <rect x="16" y="14" width="16" height="20" rx="2" fill="white" opacity="0.9"/>
+            <line x1="19" y1="20" x2="29" y2="20" stroke="#002776" stroke-width="1.5"/>
+            <line x1="19" y1="24" x2="29" y2="24" stroke="#002776" stroke-width="1.5"/>
+            <line x1="19" y1="28" x2="26" y2="28" stroke="#002776" stroke-width="1.5"/>
+            
+            <defs>
+              <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#009b3a;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#ffdf00;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#002776;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>Extensão Para Análise de PDFs com IA e proteção LGPD </h1>
+          <p class="subtitle">Marcas e Patentes · INPI</p>
+        </div>
+      </div>
+      
+      <div class="header-decoration">
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="main-content">
+      <!-- Área de upload -->
+      <section class="upload-section">
+        <div class="upload-card">
+          <div class="upload-icon-area">
+            <svg class="upload-icon" width="80" height="80" viewBox="0 0 80 80" fill="none">
+              <circle cx="40" cy="40" r="38" stroke="url(#gradient2)" stroke-width="2" stroke-dasharray="4 4"/>
+              <path d="M40 20 L40 50 M30 30 L40 20 L50 30" stroke="#009b3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M25 55 L55 55" stroke="#002776" stroke-width="2" stroke-linecap="round"/>
+              
+              <defs>
+                <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:#009b3a;stop-opacity:1" />
+                  <stop offset="50%" style="stop-color:#ffdf00;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#009b3a;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+
+          <input type="file" id="pdfInput" accept=".pdf" class="file-input" />
+          <label for="pdfInput" class="file-label">
+            <span class="label-text">1 - Escolher PDF</span>
+            <span class="label-icon">📄</span>
+          </label>
+          
+          <div id="fileName" class="file-name"></div>
+          <div id="fileInfo" class="file-info"></div>
+        </div>
+      </section>
+
+      <!-- Status messages -->
+      <section class="status-section">
+        <div id="status" class="status-message"></div>
+      </section>
+
+      <!-- Action button -->
+      <section class="action-section">
+        <button id="processBtn" class="process-btn" disabled>
+          <span class="btn-icon">⚡</span>
+          <span class="btn-text">2 - Processar e Analisar</span>
+          <span class="btn-decoration"></span>
+        </button>
+      </section>
+
+      <!-- LGPD preview button -->
+      <section class="lgpd-section">
+        <button id="lgpdBtn" class="lgpd-btn" disabled>
+          <span class="btn-icon">🔒</span>
+          <span class="btn-text">3 - Proteção LGPD</span>
+        </button>
+
+        <div id="lgpdResult" class="lgpd-result" style="display:none">
+          <div class="lgpd-result-header">
+            <span>Texto para IA (anonimizado)</span>
+            <button id="lgpdCopyBtn" class="lgpd-copy-btn">Copiar</button>
+          </div>
+          <textarea id="lgpdText" class="lgpd-text" readonly></textarea>
+        </div>
+      </section>
+
+      <!-- Open AI tabs -->
+      <section class="ai-section">
+        <button id="openAiBtn" class="ai-btn" disabled>
+          <span class="btn-icon">🤖</span>
+          <span class="btn-text">4 - Abrir IAs (preencher prompt)</span>
+        </button>
+        <p class="ai-hint">As IAs e o prompt são configurados em Opções.</p>
+      </section>
+
+      <!-- Progress indicator -->
+      <section id="progress" class="progress-section" style="display:none">
+        <div class="progress-card">
+          <div class="spinner-container">
+            <div class="spinner">
+              <div class="spinner-segment segment-1"></div>
+              <div class="spinner-segment segment-2"></div>
+              <div class="spinner-segment segment-3"></div>
+              <div class="spinner-core"></div>
+            </div>
+          </div>
+          <p id="progressText" class="progress-text">Processando...</p>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Info cards -->
+      <section class="info-section">
+        <!-- Cards informativos removidos -->
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>BR -  Desenvolvido no Brasil · v1.0.0</p>
+    </footer>
+  </div>
+
+  <script type="module" src="upload.js"></script>
+</body>
+</html>

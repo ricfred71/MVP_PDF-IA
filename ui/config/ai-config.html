@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuração de IA</title>
+  <link rel="stylesheet" href="ai-config.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Configuração de IA</h1>
+
+    <div class="tabs" role="tablist" aria-label="Configurações">
+      <button id="tab-providers" class="tab active" role="tab" aria-selected="true">IAs</button>
+      <button id="tab-prompt" class="tab" role="tab" aria-selected="false">Prompt</button>
+    </div>
+
+    <section id="panel-providers" class="panel" role="tabpanel" aria-labelledby="tab-providers">
+      <p class="hint">Selecione quais IAs serão abertas. É possível marcar mais de uma.</p>
+
+      <div class="card">
+        <div class="row">
+          <div class="row-main">
+            <div class="title">Gemini</div>
+            <div class="subtitle">https://gemini.google.com/app</div>
+          </div>
+          <label class="switch" title="Habilitar Gemini">
+            <input type="checkbox" id="provider-gemini">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="row">
+          <div class="row-main">
+            <div class="title">ChatGPT</div>
+            <div class="subtitle">https://chatgpt.com/</div>
+          </div>
+          <label class="switch" title="Habilitar ChatGPT">
+            <input type="checkbox" id="provider-chatgpt">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="row">
+          <div class="row-main">
+            <div class="title">Confirmar antes de enviar</div>
+            <div class="subtitle">Quando ativado, a extensão só preenche o prompt (não clica em enviar).</div>
+          </div>
+          <label class="switch" title="Confirmar antes de enviar">
+            <input type="checkbox" id="confirm-before-send">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <p class="hint small">Dica: o Gemini vem habilitado por padrão.</p>
+    </section>
+
+    <section id="panel-prompt" class="panel hidden" role="tabpanel" aria-labelledby="tab-prompt">
+      <p class="hint">Edite o prompt que será combinado com o texto anonimizado. Salvo no storage local (persistente).</p>
+
+      <div class="card">
+        <div class="prompt-item">
+          <div class="prompt-header" role="button" tabindex="0" aria-expanded="false" data-target="prompt-marcas-doc-recurso-indef-naoProv">
+            <div class="prompt-title">Marcas &gt; Documento Oficial &gt; Recurso contra Indeferimento — Não Provido</div>
+            <button class="btn secondary btn-small prompt-toggle" type="button" data-target="prompt-marcas-doc-recurso-indef-naoProv">Abrir</button>
+          </div>
+          <div class="prompt-body hidden">
+            <label for="prompt-marcas-doc-recurso-indef-naoProv" class="label">Prompt</label>
+            <textarea id="prompt-marcas-doc-recurso-indef-naoProv" class="textarea" rows="6" placeholder="Prompt para: sectors/marcas/types/doc_recurso-indef--naoProv"></textarea>
+          </div>
+        </div>
+
+        <div class="prompt-item">
+          <div class="prompt-header" role="button" tabindex="0" aria-expanded="false" data-target="prompt-marcas-pet-recurso-indef">
+            <div class="prompt-title">Marcas &gt; Petição &gt; Recurso contra Indeferimento</div>
+            <button class="btn secondary btn-small prompt-toggle" type="button" data-target="prompt-marcas-pet-recurso-indef">Abrir</button>
+          </div>
+          <div class="prompt-body hidden">
+            <label for="prompt-marcas-pet-recurso-indef" class="label">Prompt</label>
+            <textarea id="prompt-marcas-pet-recurso-indef" class="textarea" rows="6" placeholder="Prompt para: sectors/marcas/types/pet_recurso-indef"></textarea>
+          </div>
+        </div>
+
+        <div class="prompt-item">
+          <div class="prompt-header" role="button" tabindex="0" aria-expanded="false" data-target="prompt-patentes-doc-recurso-indef-naoProv">
+            <div class="prompt-title">Patentes &gt; Documento Oficial &gt; Recurso contra Indeferimento — Não Provido</div>
+            <button class="btn secondary btn-small prompt-toggle" type="button" data-target="prompt-patentes-doc-recurso-indef-naoProv">Abrir</button>
+          </div>
+          <div class="prompt-body hidden">
+            <label for="prompt-patentes-doc-recurso-indef-naoProv" class="label">Prompt</label>
+            <textarea id="prompt-patentes-doc-recurso-indef-naoProv" class="textarea" rows="6" placeholder="Prompt para: sectors/patentes/types/doc_recurso-indef--naoProv"></textarea>
+          </div>
+        </div>
+
+        <div class="prompt-item">
+          <div class="prompt-header" role="button" tabindex="0" aria-expanded="false" data-target="prompt-patentes-pet-recurso-indef">
+            <div class="prompt-title">Patentes &gt; Petição &gt; Recurso contra Indeferimento</div>
+            <button class="btn secondary btn-small prompt-toggle" type="button" data-target="prompt-patentes-pet-recurso-indef">Abrir</button>
+          </div>
+          <div class="prompt-body hidden">
+            <label for="prompt-patentes-pet-recurso-indef" class="label">Prompt</label>
+            <textarea id="prompt-patentes-pet-recurso-indef" class="textarea" rows="6" placeholder="Prompt para: sectors/patentes/types/pet_recurso-indef"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="status" class="status" aria-live="polite"></div>
+  </div>
+  <script src="ai-config.js"></script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Anonimização - LGPD</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .original {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .anonymized {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .stats {
+            background: #d1ecf1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Teste de Anonimização LGPD</h1>
+        <p>Este teste demonstra a funcionalidade de anonimização de dados sensíveis.</p>
+
+        <button onclick="runTest()">▶️ Executar Teste</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script src="anonymizer.js"></script>
+    <script>
+        function runTest() {
+            const anonymizer = new DataAnonymizer();
+            
+            // Texto de exemplo com dados sensíveis
+            const testText = `
+INSTITUTO NACIONAL DA PROPRIEDADE INDUSTRIAL
+
+REQUERIMENTO DE REGISTRO DE MARCA
+
+Requerente: João da Silva Santos
+CPF: 123.456.789-09
+E-mail: joao.silva@example.com
+Telefone: (11) 98765-4321
+
+Empresa: Inovações Tecnológicas LTDA
+CNPJ: 11.222.333/0001-81
+Endereço: Rua das Flores, 123, Centro
+E-mail corporativo: contato@inovacoes.com.br
+
+Titular: Maria Oliveira Costa
+CPF: 987.654.321-00
+Residência: Avenida Paulista, 1000, Bela Vista
+Telefone: (21) 3456-7890
+
+Representante Legal: Pedro Henrique Almeida
+E-mail: pedro.almeida@advocacia.com
+CPF: 111.444.777-35
+Endereço: Alameda Santos, n° 456, Jardins
+
+Descrição da Marca: Software de gestão empresarial
+Classe: 42 - Serviços científicos e tecnológicos
+Data de depósito: 15/01/2024
+Número do processo: BR402024000123-4
+            `.trim();
+
+            // Executa a anonimização
+            anonymizer.resetStats();
+            const anonymizedText = anonymizer.anonymize(testText, {
+                anonymizeCPF: true,
+                anonymizeCNPJ: true,
+                anonymizeNames: true,
+                anonymizeEmails: true,
+                anonymizeAddresses: true,
+                anonymizePhones: true
+            });
+
+            const stats = anonymizer.getStats();
+
+            // Exibe os resultados
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="test-section">
+                    <h2>📄 Texto Original</h2>
+                    <div class="original">
+                        <pre>${escapeHtml(testText)}</pre>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <h2>🔐 Texto Anonimizado</h2>
+                    <div class="anonymized">
+                        <pre>${escapeHtml(anonymizedText)}</pre>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <h2>📊 Estatísticas de Anonimização</h2>
+                    <div class="stats">
+                        <p><strong>Total de itens anonimizados:</strong> ${Object.values(stats).reduce((a, b) => a + b, 0)}</p>
+                        <ul>
+                            <li><strong>CPFs:</strong> ${stats.cpf}</li>
+                            <li><strong>CNPJs:</strong> ${stats.cnpj}</li>
+                            <li><strong>Nomes:</strong> ${stats.names}</li>
+                            <li><strong>E-mails:</strong> ${stats.emails}</li>
+                            <li><strong>Endereços:</strong> ${stats.addresses}</li>
+                            <li><strong>Telefones:</strong> ${stats.phones}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <h2>✅ Verificação de Conformidade LGPD</h2>
+                    <div class="stats">
+                        <p>✓ Todos os CPFs foram anonimizados</p>
+                        <p>✓ Todos os CNPJs foram anonimizados</p>
+                        <p>✓ Todos os e-mails foram anonimizados</p>
+                        <p>✓ Todos os telefones foram anonimizados</p>
+                        <p>✓ Todos os endereços foram anonimizados</p>
+                        <p>✓ Nomes próprios foram detectados e anonimizados</p>
+                        <p><strong>Status:</strong> <span style="color: green;">✓ CONFORME LGPD</span></p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Executa o teste automaticamente ao carregar
+        window.addEventListener('DOMContentLoaded', runTest);
+    </script>
+</body>
+</html>

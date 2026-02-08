@@ -1,0 +1,32 @@
+doc_oficial_BR102014004206-7_recurso_nao_provido_patente
+
+{
+    "categoria": "documento_oficial",
+    "setor": "patentes",
+    "tipo": "recursoIndeferimentoNaoProvidoPatente",
+    "subtipo": "",
+    "confianca": 0.85,
+    "form_numeroProcesso": "BR102014004206-7",
+    "form_numeroPct": null,
+    "form_dataDeposito": "21/02/2014",
+    "form_prioridadeUnionista": null,
+    "form_requerente_nome": "SAMSUNG ELETRÔNICA DA AMAZÔNIA LTDA.",
+    "form_inventor_nome": "FABIO R. PIVA, ORLANDO VOLPATO FILHO, FERNANDO L. KOCH",
+    "form_titulo": "Método para pagamento móvel seguro e etiqueta de rf com dispositivo antifurto integrado",
+    "textoAutomaticoEtapa1": "SERVIÇO PÚBLICO FEDERAL\nMINISTÉRIO DO DESENVOLVIMENTO, INDÚSTRIA, COMÉRCIO E SERVIÇOS\nINSTITUTO NACIONAL DA PROPRIEDADE INDUSTRIAL\nPRESIDÊNCIA\nCOORDENAÇÃO-GERAL DE RECURSOS E PROCESSOS ADMINISTRATIVOS DE NULIDADE\nN.° do Pedido: BR102014004206-7 N.° de Depósito PCT:\nData de Depósito: 21/02/2014\nPrioridade Unionista: -\nDepositante: SAMSUNG ELETRÔNICA DA AMAZÔNIA LTDA. (BRSP)\nInventor: FABIO R. PIVA, ORLANDO VOLPATO FILHO, FERNANDO L.\nKOCH\nTítulo: “Método para pagamento móvel seguro e etiqueta de rf com\ndispositivo antifurto integrado ”",
+    "textoAutomaticoEtapa2": "SERVIÇO PÚBLICO FEDERAL\nMINISTÉRIO DO DESENVOLVIMENTO, INDÚSTRIA, COMÉRCIO E SERVIÇOS\nINSTITUTO NACIONAL DA PROPRIEDADE INDUSTRIAL\nPRESIDÊNCIA\nN.° do Pedido: BR102014004206-7 N.° de Depósito PCT:\nData de Depósito: 21/02/2014\nPrioridade Unionista: -\nDepositante: SAMSUNG ELETRÔNICA DA AMAZÔNIA LTDA. (BRSP)\nInventor: FABIO R. PIVA, ORLANDO VOLPATO FILHO, FERNANDO L.\nKOCH\nTítulo: “Método para pagamento móvel seguro e etiqueta de rf com\ndispositivo antifurto integrado ”",
+    "dataDespacho": "13/01/2026",
+    "dataNotificacaoIndeferimento": "10/05/2022",
+    "nomeDecisao": "Recurso conhecido e negado provimento. Mantido o indeferimento do pedido [código 111]",
+    "textoParecer": "<<<INICIO_TEXTO_PARECER>>>\nO referido pedido foi indeferido com base nos artigos 8° c/c 13 da LPI 9279/1996.\nTal decisão foi publicada na RPI 2679 de 10/05/2022.\nFoi interposto recurso ao dito indeferimento com publicação RPI 2686 de 28/06/2022.\nNo exame técnico do recurso, com base nas alegações apresentadas, foi verificada a\nnecessidade de formulação de exigências de acordo com o artigo 214 da referida LPI, no sentido\nde complementação as razões oferecidas a título de recurso.\nA notificação relativa às referidas exigências foi efetuada na RPI 2862 de 11/11/2025.\nObservamos que não houve resposta do recorrente no sentido de apresentar as razões\npelas quais entende que a decisão recorrida foi incorreta, ou seja, as razões pelas quais entende\nque o Quadro Reivindicatório objeto do indeferimento seria dotado dos requisitos e condições de\npatenteabilidade.\nTendo em vista que a revisão da decisão de indeferimento é condicionada ao cumprimento\nadequado das referidas exigências, sugerimos que não seja dado provimento ao recurso e\nmantido o INDEFERIMENTO do pedido nas bases legais anteriormente assinaladas.\nDessa forma, estamos encaminhando o pedido para a sua respectiva decisão.\n<<<FIM_TEXTO_PARECER>>>",
+    "tecnico": null,
+    "tipoDespacho": "Recurso não provido",
+    "form_decisao": "Recurso conhecido e negado provimento. Mantido o indeferimento do pedido [código 111]",
+    "decisao": "indeferido_mantido",
+    "motivoIndeferimento": "artigos 8° c/c 13 da LPI 9279/1996",
+    "anterioridades": [],
+    "processosConflitantes": [],
+        "urlPdf": "",
+    "dataProcessamento": "2026-01-31T19:35:10.003Z",
+    "processor": "DocRecursoIndefNaoProvExtractor"
+}

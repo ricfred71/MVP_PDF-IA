@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "MVP: uso de IA para tratar pdfs",
+  "author": "nicol@inpi.gov.br",
+  "version": "3.0.0",
+  "description": "Extensão standalone para análise de PDFs com IA e proteção LGPD - 08/02/2026",
+  
+  "icons": {
+    "16": "assets/images/icon16.png",
+    "48": "assets/images/icon48.png",
+    "128": "assets/images/icon128.png"
+  },
+  
+  "action": {
+    "default_icon": {
+      "16": "assets/images/icon16.png",
+      "48": "assets/images/icon48.png"
+    },
+    "default_title": "IA Análise Jurídica"
+  },
+  
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab"
+  ],
+  
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*"
+  ],
+  
+  "content_scripts": [
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["ai-integration/providers/gemini-content-script.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["ai-integration/providers/chatgpt-content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/pdfjs/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  
+  "options_page": "ui/config/ai-config.html"
+}
