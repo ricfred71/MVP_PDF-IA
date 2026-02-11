@@ -69,6 +69,9 @@ A escolha deste tipo de petição foi pautada, por ser ela o maior quantitativo 
 
 ## Próximos Passos
 
+- Testar prompts e IA - para conseguir os  melhores resultados:
+	- Em ferramentas Gratuitas.
+	- Em ferramentas Pagas de uso Pessoal (não empresariais).
 - Expandir para novos tipos de documentos
 - Adicionar mais opções de Inteligência Artificial
 

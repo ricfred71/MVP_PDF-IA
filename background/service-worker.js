@@ -11,27 +11,100 @@
 console.log('[ServiceWorker] Iniciado - IA Análise Jurídica v1.0.0');
 
 const AI_CONFIG_KEY = 'ai_config';
+const AI_DEFAULT_PROMPT =
+  'Você é um assistente jurídico. Analise o texto abaixo (documento do INPI) e responda de forma objetiva.\n\n' +
+  'Tarefas:\n' +
+  '1) Resuma o caso.\n' +
+  '2) Identifique pontos críticos e riscos.\n' +
+  '3) Sugira próximos passos.\n\n' +
+  'Texto:\n{{TEXTO}}';
+
 const AI_DEFAULT_CONFIG = {
   providers: {
     gemini: true,
     chatgpt: false,
   },
   confirmBeforeSend: false,
-  prompt:
-    'Você é um assistente jurídico. Analise o texto abaixo e responda com objetividade.\n\nTexto:\n{{TEXTO}}',
+  prompts: {
+    marcasDocRecursoIndefNaoProv: AI_DEFAULT_PROMPT,
+    marcasPetRecursoIndef: AI_DEFAULT_PROMPT,
+    patentesDocRecursoIndefNaoProv: AI_DEFAULT_PROMPT,
+    patentesPetRecursoIndef: AI_DEFAULT_PROMPT,
+  },
 };
 
 async function getAiConfig() {
   const result = await chrome.storage.local.get({ [AI_CONFIG_KEY]: AI_DEFAULT_CONFIG });
   const cfg = result?.[AI_CONFIG_KEY] || AI_DEFAULT_CONFIG;
+  const legacyPrompt = typeof cfg.prompt === 'string' && cfg.prompt.trim() ? cfg.prompt : '';
+  const hasPromptConfig = cfg.prompts && Object.keys(cfg.prompts).length > 0;
+
+  const mergedPrompts = {
+    ...AI_DEFAULT_CONFIG.prompts,
+    ...(hasPromptConfig ? cfg.prompts : {}),
+  };
+
+  if (legacyPrompt) {
+    Object.keys(mergedPrompts).forEach((key) => {
+      const current = mergedPrompts[key];
+      if (!current || !String(current).trim()) {
+        mergedPrompts[key] = legacyPrompt;
+      }
+    });
+
+    if (!hasPromptConfig) {
+      Object.keys(mergedPrompts).forEach((key) => {
+        mergedPrompts[key] = legacyPrompt;
+      });
+    }
+  }
+
   return {
     providers: {
       ...AI_DEFAULT_CONFIG.providers,
       ...(cfg.providers || {}),
     },
     confirmBeforeSend: cfg.confirmBeforeSend === true,
-    prompt: typeof cfg.prompt === 'string' && cfg.prompt.trim() ? cfg.prompt : AI_DEFAULT_CONFIG.prompt,
+    prompts: mergedPrompts,
   };
+}
+
+function inferSectorFromStorageKey(storageKey) {
+  if (!storageKey) return '';
+  const key = String(storageKey).toLowerCase();
+  if (key.includes('patente')) return 'patentes';
+  if (key.includes('marca')) return 'marcas';
+  return '';
+}
+
+function resolvePromptKey(dados, storageKey) {
+  const setor = String(dados?.setor || inferSectorFromStorageKey(storageKey) || '').toLowerCase();
+  const categoria = String(dados?.categoria || dados?.categoriaId || '').toLowerCase();
+  const tipo = String(dados?.tipo || dados?.tipoId || '').trim();
+
+  if (setor === 'marcas' && categoria === 'documento_oficial' && tipo === 'recursoIndeferimentoNaoProvido') {
+    return 'marcasDocRecursoIndefNaoProv';
+  }
+
+  if (setor === 'patentes' && categoria === 'documento_oficial' && tipo === 'recursoIndeferimentoNaoProvido') {
+    return 'patentesDocRecursoIndefNaoProv';
+  }
+
+  if (setor === 'marcas' && categoria === 'peticao') {
+    return 'marcasPetRecursoIndef';
+  }
+
+  if (setor === 'patentes' && categoria === 'peticao') {
+    return 'patentesPetRecursoIndef';
+  }
+
+  return '';
+}
+
+function getFallbackPrompt(prompts) {
+  const values = Object.values(prompts || {}).filter((val) => typeof val === 'string' && val.trim());
+  if (values.length > 0) return values[0];
+  return AI_DEFAULT_PROMPT;
 }
 
 function buildAiMessage(prompt, text) {
@@ -105,7 +178,9 @@ async function openAiTabsAndSend(storageKey) {
     throw new Error('Documento não possui texto para enviar (textoParaIa/textoParecer/textoCompleto)');
   }
 
-  const content = buildAiMessage(cfg.prompt, texto);
+  const promptKey = resolvePromptKey(dados, storageKey);
+  const prompt = promptKey ? cfg.prompts?.[promptKey] : '';
+  const content = buildAiMessage(prompt || getFallbackPrompt(cfg.prompts), texto);
   const delayMs = 5000;
   // ENVIO AUTOMÁTICO DESABILITADO (Sprint atual)
   // Motivo: neste momento não vamos auto-enviar para as IAs.
