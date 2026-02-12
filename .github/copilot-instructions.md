@@ -23,6 +23,10 @@
 - Favor modularidade pequena em vez de arquivos enormes.
 - Comentarios apenas em trechos nao obvios.
 
+## MCPs a consultar
+- Microsoft Learn para referencias e exemplos oficiais Microsoft/Azure.
+- Context7 para documentacao e exemplos de bibliotecas.
+
 ## Validacao rapida
 - Mudou UI? Verificar telas principais do fluxo.
 - Mudou processamento? Testar com PDFs pequenos e grandes.
@@ -31,3 +35,9 @@
 ## Restricoes
 - Nao introduzir telemetria ou chamadas externas sem aprovacao.
 - Nao alterar manifest.json sem avisar.
+
+## 🌐 Idioma
+
+**Sempre responda em Português do Brasil (pt-BR).**
+
+

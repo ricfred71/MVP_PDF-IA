@@ -1,0 +1,199 @@
+{
+  "main": {
+    "id": "8158b9dd4f23340b",
+    "type": "split",
+    "children": [
+      {
+        "id": "859982410bc0fff8",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2da0cdce77ec0c6e",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Nova aba"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "4a3f9f9d908cb60e",
+    "type": "split",
+    "children": [
+      {
+        "id": "85f3622c4924148c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3854bc1fd6db96ee",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de arquivos"
+            }
+          },
+          {
+            "id": "74f9cc34c8286863",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Procurar"
+            }
+          },
+          {
+            "id": "e089142439e1cf32",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "49e4a90d2500f436",
+    "type": "split",
+    "children": [
+      {
+        "id": "2ab2a93da3acbdda",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d5c797f2ff1bf686",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Readme.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Links inversos para Readme"
+            }
+          },
+          {
+            "id": "8790f481f4fdabc1",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Readme.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Links de saída para Readme"
+            }
+          },
+          {
+            "id": "99bef09031afd784",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "20f64db6b6e89b4d",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas as propriedades"
+            }
+          },
+          {
+            "id": "c69eaa2fcc59b208",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Readme.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Sumário de Readme"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir a troca rápida": false,
+      "graph:Abrir visualização em gráfico": false,
+      "canvas:Criar novo canvas": false,
+      "daily-notes:Abrir a nota de hoje": false,
+      "templates:Inserir modelo": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Criar nova base": false
+    }
+  },
+  "active": "2da0cdce77ec0c6e",
+  "lastOpenFiles": [
+    "Auxiliar/AJUSTES_PET_EXTRACTOR_PATENTES.md",
+    "Auxiliar/indice.md",
+    "Auxiliar/DICIONARIO_VARIAVEIS.md",
+    "Auxiliar/lu12936pk36v.tmp",
+    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas/types/doc_recurso-indef--naoProv/doc_schema.js.md",
+    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas/types/doc_recurso-indef--naoProv",
+    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas/types",
+    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas",
+    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors",
+    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca",
+    "ExrtensãoPatentesMarca",
+    "Auxiliar/ANALISE_ESTRATEGIA_ANONIMIZACAO.md",
+    "Readme.md",
+    "Readme.html"
+  ]
+}

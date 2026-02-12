@@ -1,1 +1,64 @@
-/.obsidian
+# Dependencies
+node_modules/
+package-lock.json
+
+# VS Code
+.vscode/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build outputs
+dist/
+build/
+*.crx
+*.pem
+*.zip
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# MCP
+.mcp.json
+opencode.json
+
+# Gemini
+.gemini/
+
+# Obsedian
+.obsedian/
+
+# Cursor
+.cursorrules
+
+# Playwright
+e2e/
+playwright.config.js
+playwright.config.ts
