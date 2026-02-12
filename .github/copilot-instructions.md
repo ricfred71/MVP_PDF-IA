@@ -10,20 +10,12 @@
 - Evite novas dependencias sem justificar ganho claro.
 
 ## Estrutura relevante
-
 - App e entrada: /app.js, /index.html
 - Processamento de PDF: /pdfProcessor.js
 - UI: /ui
 - Core e utils: /core, /utils
 - Scripts e libs: /scripts, /lib
-
-
-## Documentacao
-- Toda documentacao deve ser salva em /Auxiliar.
-- Nome do arquivo deve incluir o nome da pasta de origem.
-- Se houver pastas repetidas, use o caminho para desambiguar, unindo pastas com "_".
-- Exemplo: conteudo de /patentes/types/RESUMO.md deve ser salvo como patentes_types_RESUMO.md.
-- Atualize o arquivo indice.md com a lista dos arquivos em /Auxiliar, com itens linkados.
+- Documentacao: /auxiliar
 
 ## Preferencias de codigo
 - Priorize funcoes puras e nomes descritivos.
