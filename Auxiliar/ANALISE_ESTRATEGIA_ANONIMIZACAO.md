@@ -1,169 +1,234 @@
-# Análise da Proposta de Anonimização de Dados
+# Estratégia de Anonimização LGPD - Status de Implementação
 
-**Data**: 01/02/2026  
+**Data de criação**: 01/02/2026  
+**Última atualização**: 13/02/2026  
 **Contexto**: Extensão IPAS - Anonimização de documentos para envio a IAs gratuitas  
-**Conformidade**: LGPD (Lei Geral de Proteção de Dados)
+**Conformidade**: LGPD (Lei Geral de Proteção de Dados, lei 13.709/2018).
 
 ---
 
 ## 📋 Visão Geral
 
-Sua estratégia de **Tokenização/Pseudonimização Reversível** é **sólida e viável**. Proposta de 3 etapas:
+Estratégia de **Tokenização/Pseudonimização Reversível** implementada em 3 etapas:
 
 1. **Remoção de cabeçalhos automáticos** (metadados identificadores)
-2. **Tokenização de dados LGPD** (já mapeados em variáveis)
-3. **Masking de números de processos** (padrão \d{9})
+2. **Tokenização semântica de dados LGPD** (campos sensíveis mapeados)
+3. **Tokenização genérica de padrões numéricos** (CPF, CNPJ, processos, protocolos)
+
+LGPD (Lei Geral de Proteção de Dados, lei 13.709/2018).
+	**Conceito de Anonimização**:**
+	Art. 5º, inc. XI: "*anonimização: utilização de meios técnicos razoáveis e disponíveis no momento do tratamento, por meio dos quais um dado perde a possibilidade de associação, direta ou indireta, a um indivíduo;*"
+	**Conceito de Pseudonimização:**
+	Art. 13 , § 4º: "*Para os efeitos deste artigo, a pseudonimização é o tratamento por meio do qual um dado perde a possibilidade de associação, direta ou indireta, a um indivíduo, senão pelo uso de informação adicional mantida separadamente pelo controlador em ambiente controlado e seguro*".
+	**Conceito de Tokenização:**
+	A tokenização é uma técnica que substitui dados sensíveis por tokens únicos e seguros. Um token é uma representação digital de um signo.
+
+### Status Atual por Tipo de Documento
+
+| Tipo | Tokenização Básica | Regex Flexível | Auditoria | Logs Debug |
+|------|:------------------:|:--------------:|:---------:|:----------:|
+| **Marcas > Petição > Recurso Indef** | ✅ | ✅ | ✅ | ✅ |
+| **Patentes > Petição > Recurso Indef** | ✅ | ❌ | ❌ | ❌ |
+| **Marcas > Doc Oficial > Recurso Não Provido** | ✅ | ❌ | ❌ | ❌ |
+| **Patentes > Doc Oficial > Recurso Não Provido** | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
-## 1️⃣ Remoção de Cabeçalhos Automáticos
+## 🎯 Funcionalidades Implementadas (Comuns a Todos)
 
-### ✅ Pontos Positivos
+### ✅ 1. Tokenização Semântica Básica
+- Substituição de valores extraídos por tokens com tipo semântico
+- Exemplo: `João Silva` → `[REQUERENTE_1]`, `123.456.789-00` → `[CPF_1]`
+- Preserva contexo semântico para a IA entender papéis
+- Determinístico: mesmo valor = mesmo token em todo o documento
 
-- **Metadados identificadores**: Elimina dados desnecessários para análise
-- **Determinístico e rápido**: Sem dependência de ML
-- **Seguro**: Remove informações não relevantes para a IA
+### ✅ 2. Mapeamento Reversível
+- Mapa `tokenToValue` e `valueToToken` armazenado em `chrome.storage.session`
+- Permite destokenização das respostas da IA
+- Chave: `lgpd_map_{storageKey}`
+- Limpeza automática ao fechar a sessão
 
-### ⚠️ Considerações
+### ✅ 3. Tokenização de Padrões Genéricos
+Regex para capturar padrões comuns não mapeados explicitamente:
+- **CNPJ**: `/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/` e `/\b\d{14}\b/`
+- **CPF**: `/\b\d{11}\b/`
+- **Protocolo**: `/\b\d{12}\b/` (12 dígitos)
+- **Processo**: `/\b\d{9}\b/` (9 dígitos)
 
-- **Estrutura variável**: Os headers são sempre iguais?
-- **Risco de perda de contexto**: Algumas datas/informações são importantes
-  - Ex: Data do despacho é crucial para análise temporal
+### ✅ 4. Remoção de Cabeçalhos/Rodapés Repetidos
+- Remove texto que se repete em múltiplas páginas
+- Detecta padrões: "Página X de Y", dados de contato INPI, etc.
+- Reduz ruído e tamanho do texto para IA
 
-### 💡 Sugestão: Separar em Dois Grupos
+---
 
-#### REMOVER COMPLETAMENTE
+## 📂 Implementação Específica por Tipo
+
+### ✅ Marcas > Petição > Recurso contra Indeferimento
+
+**Arquivo**: [`sectors/marcas/types/pet_recurso-indef/pet_extractor.js`](../sectors/marcas/types/pet_recurso-indef/pet_extractor.js)
+
+#### Campos Anonimizados
+```javascript
+const listaLgpd = [
+  'form_numeroPeticao',          // 12 dígitos
+  'form_numeroProcesso',         // 9 dígitos
+  'form_nossoNumero',            // 17 dígitos
+  'form_requerente_nome',        // Nome/Razão Social
+  'form_requerente_cpfCnpjNumINPI',  // CPF/CNPJ/Nº INPI
+  'form_requerente_endereco',    // Endereço completo
+  'form_requerente_cep',         // CEP
+  'form_requerente_email',       // E-mail
+  'form_procurador_nome',        // Nome procurador
+  'form_procurador_cpf',         // CPF procurador
+  'form_procurador_email',       // E-mail procurador
+  'form_procurador_numeroAPI',   // Nº API
+  'form_procurador_numeroOAB',   // Nº OAB
+  'form_procurador_escritorio_nome',   // Nome escritório
+  'form_procurador_escritorio_cnpj'    // CNPJ escritório
+];
 ```
-- Assinaturas digitais
-- Nomes de técnicos/servidores INPI
-- IDs internos do sistema
-- Datas de processamento interno
-- Cabeçalhos de protocolo
-- URLs de download
-- Hashes de autenticação
+
+#### ✅ Funcionalidades Avançadas Implementadas
+
+**1. Regex Flexível para Variantes**
+- **Estratégia por campo**: cada campo tem uma estratégia de matching
+- **Tipos de matching**:
+  - `digits`: aceita separadores opcionais (`123456789` ↔ `123.456.789` ↔ `123-456-789`)
+  - `alnum`: alfanuméricos com separadores (`ABC123` ↔ `ABC-123`)
+  - `text`: texto com pontuação flexível (`João Silva` ↔ `João/Silva`)
+  - `mixed`: combinação de digits + text
+
+```javascript
+const fieldToStrategy = {
+  form_numeroPeticao: 'digits',
+  form_numeroProcesso: 'digits',
+  form_nossoNumero: 'digits',
+  form_procurador_numeroAPI: 'alnum',
+  form_procurador_numeroOAB: 'alnum',
+  form_requerente_cep: 'digits',
+  form_requerente_cpfCnpjNumINPI: 'mixed',
+  form_procurador_cpf: 'digits',
+  form_procurador_escritorio_cnpj: 'digits',
+  form_requerente_nome: 'text',
+  form_procurador_nome: 'text',
+  form_procurador_escritorio_nome: 'text',
+  form_requerente_endereco: 'text'
+};
 ```
 
-#### MANTER (será tokenizado depois)
-```
-- Número do processo
-- Datas de despacho/decisão
-- Data de apresentação
-- Tipo de documento
-- Nomes de partes (será pseudonimizado)
+**2. Auditoria Pós-Tokenização**
+- Reaplica as mesmas regex após tokenização
+- Detecta vazamentos (valores que escaparam)
+- Loga campos com vazamento: `console.warn('[RecursoIndefExtractor] ⚠️ Possivel vazamento LGPD detectado:', vazamentosLgpd)`
+
+**3. Logs de Debug**
+- Logs de cada campo durante tokenização:
+  - `console.log('[RecursoIndefExtractor] LGPD matches:', campo, totalMatches)`
+  - `console.log('[RecursoIndefExtractor] LGPD sem match:', campo)`
+- Logs de vazamento na auditoria:
+  - `console.log('[RecursoIndefExtractor] LGPD vazamento match:', campo, totalMatches)`
+- Enviados também via `chrome.runtime.sendMessage({ type: 'LGPD_DEBUG', payload })`
+
+**4. Helpers Reutilizáveis**
+```javascript
+_buildFlexibleDigitsRegex(digits)     // Regex para números com separadores
+_buildFlexibleAlnumRegex(value)       // Regex para alfanuméricos
+_buildFlexibleTextRegex(value)        // Regex para texto com pontuação
+_getLgpdRegexesForField(campo, valor) // Retorna todas as regex para um campo
+_countRegexMatches(texto, regexes)    // Conta matches totais
+_auditarVazamentoLgpd(texto, dados)   // Auditoria completa
+_logLgpdDebug(evento, dados)          // Log unificado
 ```
 
 ---
 
-## 2️⃣ Tokenização de Dados LGPD
+### ✅ Patentes > Petição > Recurso contra Indeferimento
 
-### Dados Já Identificados no `doc_extractor.js`
+**Arquivo**: [`sectors/patentes/types/pet_recurso-indef/pet_extractor.js`](../sectors/patentes/types/pet_recurso-indef/pet_extractor.js)
 
+#### Campos Anonimizados
 ```javascript
-// Campos sensíveis já mapeados:
-requerente: this._extrairRequerente()                    // ⚠️ NOME
-tecnico: this._extrairTecnico()                          // ⚠️ NOME
-dataNotificacaoIndeferimento: this._extrairDataNotificacaoIndeferimento()  // DATA
-textoParecer: this._extrairTextoParecer()                // ⚠️ PODE TER NOMES
+const listaLgpd = [
+  'form_numeroPeticao',
+  'form_numeroProcesso',
+  'form_nossoNumero',
+  'form_dataPeticao',
+  'form_requerente_nome',
+  'form_requerente_cpfCnpjNumINPI',
+  'form_requerente_endereco',
+  'form_requerente_cidade',
+  'form_requerente_estado',
+  'form_requerente_cep',
+  'form_requerente_nacionalidade',
+  'form_requerente_naturezaJuridica',
+  'form_requerente_email',
+  'form_procurador_nome',
+  'form_procurador_cpf',
+  'form_procurador_email',
+  'form_procurador_numeroAPI',
+  'form_procurador_numeroOAB',
+  'form_procurador_uf',
+  'form_procurador_escritorio_nome',
+  'form_procurador_escritorio_cnpj'
+];
 ```
 
-### Exemplo de Tokenização Semântica
+#### ⚠️ Funcionalidades Pendentes
+- ❌ Regex flexível para variantes
+- ❌ Auditoria pós-tokenização
+- ❌ Logs de debug
 
+---
+
+### ✅ Marcas > Documento Oficial > Recurso Não Provido
+
+**Arquivo**: [`sectors/marcas/types/doc_recurso-indef--naoProv/doc_extractor.js`](../sectors/marcas/types/doc_recurso-indef--naoProv/doc_extractor.js)
+
+#### Campos Anonimizados
 ```javascript
-// ANTES (Original)
-Requerente: João Silva Oliveira CPF 123.456.789-00
-Técnico: RICARDO FREDERICO NICOL
-
-// DEPOIS (Tokenizado)
-Requerente: [PESSOA_NATURAL_1] CPF [CPF_1]
-Técnico: [PESSOA_NATURAL_2]
-
-// MAPA LOCAL (armazenado localmente na extensão)
-{
-  "[PESSOA_NATURAL_1]": "João Silva Oliveira",
-  "[CPF_1]": "123.456.789-00",
-  "[PESSOA_NATURAL_2]": "RICARDO FREDERICO NICOL"
-}
+const listaLgpd = [
+  'form_numeroProcesso',
+  'form_dataDespacho',
+  'form_nomePeticao',
+  'form_numeroProtocolo',
+  'form_dataApresentacao',
+  'form_requerente_nome',
+  'form_dataNotificacaoIndeferimento',
+  'form_dataParecer',
+  'form_numeroParecer',
+  'form_marca'
+];
 ```
 
-### ✅ Vantagens da Abordagem
+#### ⚠️ Funcionalidades Pendentes
+- ❌ Regex flexível para variantes
+- ❌ Auditoria pós-tokenização
+- ❌ Logs de debug
 
-| Vantagem | Detalhe |
-|----------|---------|
-| **Semântica preservada** | IA entende que é pessoa, não confunde com empresa |
-| **Distinguibilidade** | Múltiplas pessoas → `[PESSOA_NATURAL_1]`, `[PESSOA_NATURAL_2]` |
-| **Reversão trivial** | Busca-e-substitui no texto retornado |
-| **Determinístico** | Mesma pessoa → mesmo token em todo documento |
-| **LGPD compatível** | Pseudonimização reconhecida legalmente |
+---
 
-### 🎯 Tipos de Tokens Recomendados
+### ✅ Patentes > Documento Oficial > Recurso Não Provido
 
+**Arquivo**: [`sectors/patentes/types/doc_recurso-indef--naoProv/doc_extractor.js`](../sectors/patentes/types/doc_recurso-indef--naoProv/doc_extractor.js)
+
+#### Campos Anonimizados
 ```javascript
-// Dados identificadores diretos
-[PESSOA_NATURAL_1], [PESSOA_NATURAL_2], ...
-[PESSOA_JURIDICA_1], [PESSOA_JURIDICA_2], ...
-[CPF_1], [CPF_2], ...
-[CNPJ_1], [CNPJ_2], ...
-[EMAIL_1], [EMAIL_2], ...
-[TELEFONE_1], [TELEFONE_2], ...
-[ENDERECO_1], [ENDERECO_2], ...
-
-// Dados de processos relacionados
-[PROCESSO_ANTERIOR_1], [PROCESSO_ANTERIOR_2], ...
-[PROCESSO_CONFLITANTE_1], [PROCESSO_CONFLITANTE_2], ...
-
-// Dados contextuais (quando sensível)
-[DATA_NASCIMENTO_1], ...
+const listaLgpd = [
+  'form_numeroProcesso',
+  'form_numeroPct',
+  'form_dataDeposito',
+  'form_prioridadeUnionista',
+  'form_requerente_nome',
+  'form_inventor_nome',
+  'form_titulo'
+];
 ```
 
-### ⚠️ Desafios Identificados
-
-#### 1. **Variantes de escrita (separadores e abreviações)**
-
-Os valores extraídos podem aparecer no texto com separadores diferentes, espaçamento variável ou abreviações (ex.: `123.456.789-00`, `12345678900`, `12/345/678 900`). Se a tokenização depender de substituição literal, parte dos dados sensíveis pode escapar.
-
-**Implementação adotada** (petição > recurso indeferimento > marcas):
-
-- **Estratégia por campo** em vez de criar novos campos no schema.
-- **Regex flexível** para números (aceita separadores opcionais).
-- **Regex flexível** para texto (aceita pontuação e múltiplos espaços).
-- **Regex flexível** para alfanuméricos (ex.: OAB/API com UF).
-
-Campos com variantes cobertas:
-
-- `form_numeroPeticao`, `form_numeroProcesso`, `form_nossoNumero`
-- `form_procurador_numeroAPI`, `form_procurador_numeroOAB`
-- `form_requerente_cep`, `form_requerente_cpfCnpjNumINPI`, `form_procurador_cpf`, `form_procurador_escritorio_cnpj`
-- `form_requerente_nome`, `form_procurador_nome`, `form_procurador_escritorio_nome`, `form_requerente_endereco`
-
-#### 2. **Separação de Dados Compostos**
-
-No `_extrairRequerente()`, o texto geralmente vem como:
-```
-Requerente: João Silva Oliveira - Empresa XYZ LTDA - CPF 123.456.789-00
-```
-
-**Problema**: Seu código extrai tudo junto. Precisa separar:
-- Nome ← `[PESSOA_NATURAL_1]`
-- Empresa ← `[PESSOA_JURIDICA_1]`
-- CPF ← `[CPF_1]`
-
-#### 3. **Nomes em `_extrairTextoParecer()`**
-
-O parecer técnico pode conter nomes não capturados pelo extrator:
-```
-"... conforme entendimento de João Silva, técnico responsável..."
-```
-
-**Problema**: Esse nome NÃO é capturado pelo `_extrairTecnico()`.
-
-**Solução**: Usar NER (Named Entity Recognition) automático ou procurar por padrões adicionais.
-
-#### 4. **Dados Pseudonimizados Incompletos**
-
-Seu extrator pode omitir dados sensíveis:
-- Endereços mencionados no parecer
-- Números de outras pessoas
-- Informações contextuais identificáveis
+#### ⚠️ Funcionalidades Pendentes
+- ❌ Regex flexível para variantes
+- ❌ Auditoria pós-tokenização
+- ❌ Logs de debug
 
 ---
 
@@ -607,7 +672,7 @@ Se a IA não entender bem os tokens:
 ## 📚 Referências Úteis
 
 ### LGPD & Privacidade
-- [LGPD - Lei 13.709/2018](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.html)
+- [LGPD - Lei 13.709/2018](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm)
 - Artigo 13, §4º: Pseudonimização
 - Artigo 32: Segurança de dados
 
@@ -624,5 +689,327 @@ Se a IA não entender bem os tokens:
 
 ---
 
-**Documento Atualizado**: 01/02/2026  
-**Status**: Proposta Analisada ✅ - Pronto para Implementação
+## 💡 SUGESTÕES E PRÓXIMOS PASSOS
+
+> **⚠️ IMPORTANTE**: As seções abaixo contêm **análises, recomendações e propostas de melhorias futuras**.  
+> **NÃO** representam funcionalidades já implementadas. Use a seção de Status (topo do documento) para identificação clara.
+
+---
+
+### 🔄 Replicar Funcionalidades Avançadas nos Extractors Pendentes
+
+#### Prioridade Alta
+
+- [ ] **Implementar regex flexível em Patentes > Petição > Recurso Indef**
+  - Copiar helpers de `pet_extractor.js` (Marcas)
+  - Adaptar `_getLgpdFieldStrategies()` para campos específicos de patentes
+  - Testar com PDFs reais de patentes
+
+- [ ] **Implementar regex flexível em Marcas > Doc Oficial > Recurso Não Provido**
+  - Copiar helpers de `pet_extractor.js` (Marcas)
+  - Adaptar estratégias para campos de formulário (`form_*`)
+  - Validar com documentos oficiais
+
+- [ ] **Implementar regex flexível em Patentes > Doc Oficial > Recurso Não Provido**
+  - Copiar helpers já adaptados
+  - Ajustar para campos únicos de patentes (PCT, inventor, título)
+  - Testar cobertura completa
+
+- [ ] **Implementar auditoria pós-tokenização nos 3 extractors restantes**
+  - Adicionar `_auditarVazamentoLgpd()` em todos
+  - Logar vazamentos detectados via `_logLgpdDebug()`
+  - Considerar bloquear envio para IA se houver vazamento crítico (CPF/CNPJ)
+
+- [ ] **Adicionar logs de debug nos 3 extractors restantes**
+  - Implementar `_logLgpdDebug()` em todos
+  - Configurar listener no service worker para `type: 'LGPD_DEBUG'`
+  - Adicionar flag de configuração para ligar/desligar logs em produção
+
+#### Prioridade Média
+
+- [ ] **Centralizar helpers em módulo compartilhado**
+  - Criar `utils/lgpd_tokenization_helpers.js`
+  - Exportar funções: `buildFlexibleDigitsRegex`, `buildFlexibleAlnumRegex`, `buildFlexibleTextRegex`
+  - Evitar duplicação de código entre 4 extractors
+  - Facilitar manutenção e testes unitários
+
+- [ ] **Adicionar configuração de logs via Options Page**
+  - Campo checkbox: "Ativar logs de depuração LGPD"
+  - Salvar em `chrome.storage.sync`
+  - Verificar flag antes de chamar `_logLgpdDebug()`
+  - Evitar poluição de logs em ambiente de produção
+
+- [ ] **Criar testes unitários para regex flexíveis**
+  - Testar variantes: `123.456.789`, `123-456-789`, `123 456 789`
+  - Validar textos: `João Silva`, `João-Silva`, `João.Silva`
+  - Garantir que código alfanumérico: `ABC123-XY`, `ABC-123-XY`, `ABC 123 XY` sejam detectados
+
+#### Prioridade Baixa
+
+- [ ] **Dashboard de auditoria LGPD**
+  - Criar página de relatórios de vazamentos detectados
+  - Exibir histórico de substituições
+  - Permitir exportação de logs para compliance
+
+- [ ] **Implementar cleanup automático de mapas**
+  - Limpar mapas de tokenização com mais de 24h
+  - Notificar usuário antes de limpar
+  - Adicionar opção manual de limpeza
+
+---
+
+### 🚨 Desafios Técnicos Identificados
+
+> **Nota**: Estes desafios foram identificados durante análise do código. Soluções propostas abaixo.
+
+#### 1. **Separação de Dados Compostos no `_extrairRequerente()`**
+
+**Problema**: No `_extrairRequerente()`, o texto geralmente vem como:
+```
+Requerente: João Silva Oliveira - Empresa XYZ LTDA - CPF 123.456.789-00
+```
+
+O código atual extrai tudo junto. O ideal seria separar:
+- Nome pessoa física ← `[REQUERENTE_PESSOA_NATURAL_1]`
+- Empresa ← `[REQUERENTE_PESSOA_JURIDICA_1]`
+- CPF ← `[CPF_1]`
+
+**Sugestão de implementação**:
+```javascript
+_extrairRequerente(texto) {
+  const regex = /Requerente:\s*([^-\n]+?)(?:\s*-\s*([^-\n]+?))?(?:\s*-\s*CPF\s*([0-9.\-]+))?/i;
+  const match = texto.match(regex);
+  
+  if (!match) return { nome: null, empresa: null, cpf: null };
+  
+  return {
+    nome: match[1]?.trim() || null,
+    empresa: match[2]?.trim() || null,
+    cpf: match[3]?.trim() || null
+  };
+}
+```
+
+Depois, tokenizar cada campo individualmente no `_tokenizarTextoParaIa()`.
+
+---
+
+#### 2. **Nomes Não Capturados em Texto Livre (Parecer Técnico)**
+
+**Problema**: O parecer técnico pode conter nomes não capturados pelo extrator:
+```
+"... conforme entendimento de João Silva, técnico responsável..."
+```
+
+Este nome **NÃO** é capturado pelo `_extrairTecnico()` porque não está no formato padrão.
+
+**Soluções possíveis**:
+
+**Opção A: NER (Named Entity Recognition) automático**
+- Usar biblioteca como **spaCy** ou **Presidio** (Microsoft)
+- Detectar automaticamente entidades `PERSON`
+- ⚠️ **Risco**: Falsos positivos (nomes de marcas, lugares)
+
+**Opção B: Regex adicional para padrões comuns**
+```javascript
+// Detectar "Sr./Sra. Nome Sobrenome"
+const regexTitulo = /\b(?:Sr\.|Sra\.|Dr\.|Dra\.)\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+){1,3})/g;
+
+// Detectar "nome próprio + cargo"
+const regexCargo = /\b([A-Z][a-záéíóúâêôãõç]+(?:\s+[A-Z][a-záéíóúâêôãõç]+){1,3}),\s+(?:técnico|perito|especialista|analista)/gi;
+```
+- ⚠️ **Risco**: Ainda pode ter falsos positivos/negativos
+
+**Opção C: Aceitar limitação**
+- Documentar que nomes dispersos em texto livre **não são tokenizados**
+- Justificativa: Trade-off entre automação e precisão
+- Adicionar aviso ao usuário: "Nomes não estruturados podem não ser anonimizados"
+
+**Recomendação**: Implementar **Opção B** (regex adicional) como primeiro passo. Avaliar **Opção A** (NER) se houver muitos casos não cobertos.
+
+---
+
+#### 3. **Contexto Semântico de Processos Relacionados**
+
+**Problema**: Processos relacionados ao mesmo requerente perdem esse vínculo após tokenização:
+```
+Processo 123456789 (João Silva) → [PROCESSO_CITADO_1]
+Processo 234567890 (João Silva) → [PROCESSO_CITADO_2]
+Processo 345678901 (Maria Santos) → [PROCESSO_CITADO_3]
+```
+
+A IA não sabe que `[PROCESSO_CITADO_1]` e `[PROCESSO_CITADO_2]` são da **mesma pessoa**.
+
+**Soluções possíveis**:
+
+**Opção A: Hash determinístico baseado no requerente**
+```javascript
+// Gerar ID único por requerente
+const requerenteHash = sha256(requerente).substring(0, 8);
+const token = `[PROCESSO_REQUERENTE_${requerenteHash}_1]`;
+// Problema: Ainda identifica requerente (derrota o propósito)
+```
+
+**Opção B: Manter metadados adicionais (sem expor no texto)**
+```javascript
+// No mapa de tokens, incluir relação
+tokenMap: {
+  "[PROCESSO_CITADO_1]": {
+    numero: "123456789",
+    requerenteRef: "REQUERENTE_1"  // Link interno
+  },
+  "[PROCESSO_CITADO_2]": {
+    numero: "234567890",
+    requerenteRef: "REQUERENTE_1"  // Mesmo requerente
+  }
+}
+// IA não vê isso, mas você pode usar para análise posterior
+```
+
+**Opção C: Aceitar limitação (trade-off privacidade vs contexto)**
+- Documentar que vínculo entre processos é perdido
+- Justificativa: Máxima proteção LGPD
+- A IA analisa processos como entidades independentes
+
+**Recomendação**: Implementar **Opção B** (metadados internos) para auditoria futura, mas **não expor** no texto enviado à IA.
+
+---
+
+### 🔒 Considerações de Segurança e Compliance
+
+#### Armazenamento do Mapa de Tokens
+
+**Implementação atual**: `chrome.storage.session`
+- ✅ Dados apagados automaticamente ao fechar aba/navegador
+- ✅ Isolado por origem (extensão)
+- ⚠️ Vulnerável se outra extensão maliciosa tiver acesso ao storage
+
+**Alternativas a considerar**:
+
+| Opção | Vantagens | Desvantagens | Uso recomendado |
+|-------|-----------|--------------|-----------------|
+| **session storage** | Auto-cleanup, baixo risco | Perdido ao fechar aba | Análises pontuais (atual) ✅ |
+| **local storage** | Persistente, reutilizável | Maior exposição | Mapas de longo prazo |
+| **Memória (variável)** | Máxima privacidade | Perdido ao recarregar | Testes rápidos |
+| **Criptografado** | Segurança adicional | Overhead implementação | Dados altamente sensíveis |
+
+**Recomendação**: 
+- Manter `chrome.storage.session` como está
+- Adicionar aviso ao usuário: "Seu mapa de anonimização será deletado ao fechar esta aba"
+- Considerar criptografia adicional **apenas se** armazenar em `local` storage
+
+---
+
+#### Validação com IA antes de Produção
+
+Antes de produção, validar se a IA compreende os tokens:
+
+```javascript
+// Prompt de teste completo
+const promptTeste = `
+Você está analisando um documento anonimizado do INPI. 
+Os códigos entre colchetes representam dados protegidos:
+- [REQUERENTE_X]: Nome de pessoa natural
+- [PESSOA_JURIDICA_X]: Nome de empresa
+- [PROCESSO_CITADO_X]: Número de processo
+- [CPF_X]: CPF
+- [TECNICO_X]: Nome de técnico/perito
+
+Documento:
+"[REQUERENTE_1] solicitou registro de marca.
+A empresa [PESSOA_JURIDICA_1] alegou conflito com processo [PROCESSO_CITADO_1].
+Parecer técnico de [TECNICO_1]: 'Houve falta de análise adequada.'
+CPF do requerente: [CPF_1]"
+
+Questões:
+1. Quantas pessoas naturais estão envolvidas?
+2. Quantas empresas estão envolvidas?
+3. Há algum conflito de interesse entre [REQUERENTE_1] e [PESSOA_JURIDICA_1]?
+`;
+
+// Respostas esperadas:
+// 1. "2 pessoas naturais ([REQUERENTE_1] e [TECNICO_1])"
+// 2. "1 empresa ([PESSOA_JURIDICA_1])"
+// 3. "Sim, a empresa alegou conflito com o processo do requerente"
+```
+
+**Se a IA não entender**:
+- **Aumentar contexto nos tokens**: `[REQUERENTE_PESSOA_NATURAL_1]` em vez de `[REQUERENTE_1]`
+- **Adicionar prompt preamble padrão**: Explicar sistema de tokens em toda requisição
+- **Usar nomes genéricos**: `[Pessoa A]`, `[Empresa X]` (menos técnico, mais legível)
+
+---
+
+### 📊 Matriz de Riscos e Mitigações
+
+| Risco | Probabilidade | Impacto | Mitigação | Status |
+|-------|---------------|---------|-----------|--------|
+| **Vazamento de CPF/CNPJ** | Média | Alto | Regex flexível + auditoria | ✅ Implementado (Marcas Pet) |
+| **Nomes dispersos não detectados** | Alta | Médio | Regex adicional + NER | ❌ Pendente |
+| **Contexto perdido (processos)** | Alta | Baixo | Aceitar limitação | ⚠️ Documentado |
+| **Mapa exposto a extensão maliciosa** | Baixa | Alto | Session storage + aviso | ✅ Implementado |
+| **IA não compreende tokens** | Média | Médio | Prompt preamble | ❌ Pendente teste |
+| **Performance lenta (regex múltiplas)** | Baixa | Baixo | Otimização regex | ✅ Não detectado |
+| **Re-identificação por combinação** | Baixa | Médio | Limitar metadados expostos | ⚠️ Aceitar |
+
+---
+
+### 📚 Referências e Recursos
+
+#### LGPD & Compliance
+- [LGPD - Lei 13.709/2018](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.html)  
+  - Artigo 13, §4º: Pseudonimização como técnica válida
+  - Artigo 32: Segurança de dados pessoais
+- [Guia de Boas Práticas LGPD - ANPD](https://www.gov.br/anpd)
+
+#### Técnicas de Anonimização
+- **Tokenização Reversível**: Pseudonimização (implementado)
+- **K-Anonymity**: Indistinguibilidade em conjunto de dados
+- **Differential Privacy**: Ruído estatístico para datasets
+- **Hash Determinístico**: SHA-256 com salt
+
+#### Ferramentas Open-Source
+- **[Presidio](https://github.com/microsoft/presidio)** (Microsoft): NER para detecção de PII
+- **[spaCy](https://spacy.io/)**: NLP para detecção de entidades nomeadas
+- **[Crypto-JS](https://github.com/brix/crypto-js)**: Hashing SHA-256 no navegador
+
+#### Artigos Acadêmicos
+- *"A systematic literature review on compliance with the LGPD"* (2023)
+- *"Privacy-Preserving Techniques for Legal Document Analysis"* (2022)
+
+---
+
+### ✅ Checklist de Expansão (Roadmap)
+
+#### Curto Prazo (1-2 semanas)
+- [ ] Replicar regex flexível para **Patentes > Petição**
+- [ ] Replicar regex flexível para **Marcas > Doc Oficial**
+- [ ] Replicar regex flexível para **Patentes > Doc Oficial**
+- [ ] Implementar auditoria em todos os 3 extractors pendentes
+- [ ] Adicionar `_logLgpdDebug()` em todos os 3 extractors
+- [ ] Criar listener no service worker para receber logs `LGPD_DEBUG`
+- [ ] Testar vazamentos com PDFs reais de cada tipo
+
+#### Médio Prazo (3-4 semanas)
+- [ ] Centralizar helpers em `utils/lgpd_tokenization_helpers.js`
+- [ ] Adicionar testes unitários para regex flexíveis
+- [ ] Implementar flag de configuração para logs (Options Page)
+- [ ] Validar compreensão da IA com bateria de prompts de teste
+- [ ] Melhorar `_extrairRequerente()` para separar nome/empresa/CPF
+- [ ] Adicionar regex adicional para detectar nomes em texto livre
+- [ ] Documentar para usuário final (Guia de Anonimização LGPD)
+
+#### Longo Prazo (2-3 meses)
+- [ ] Avaliar viabilidade de NER automático (Presidio/spaCy)
+- [ ] Implementar detecção de endereços não estruturados
+- [ ] Criar dashboard de auditoria LGPD (histórico de vazamentos)
+- [ ] Automatizar cleanup de mapas antigos (TTL 24h)
+- [ ] Adicionar criptografia adicional do mapa (se migrar para local storage)
+- [ ] Implementar metadados relacionais (processos ↔ requerentes)
+- [ ] Criar exportação de relatórios de compliance LGPD
+
+---
+
+**Documento Atualizado**: {{ data_atual }}  
+**Status**: ✅ Funcionalidades Avançadas Implementadas em **Marcas > Petição** | ⚠️ Expansão Pendente para Outros 3 Tipos  
+**Versão**: 2.0 - Refletindo Implementação Real vs. Propostas

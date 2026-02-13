@@ -257,6 +257,12 @@ export class RecursoIndefExtractor {
 
       const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
       if (!regexes.length) return;
+      const totalMatches = this._countRegexMatches(textoTokenizado, regexes);
+      if (totalMatches === 0) {
+        console.log('[RecursoIndefExtractor] LGPD sem match:', campo);
+      } else {
+        console.log('[RecursoIndefExtractor] LGPD matches:', campo, totalMatches);
+      }
       textoTokenizado = replaceByRegexes(textoTokenizado, regexes, token);
     });
 
@@ -300,12 +306,16 @@ export class RecursoIndefExtractor {
       const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
       if (!regexes.length) return;
 
-      const encontrou = regexes.some((regex) => regex.test(textoParaIa));
+      const totalMatches = this._countRegexMatches(textoParaIa, regexes);
+      const encontrou = totalMatches > 0;
       regexes.forEach((regex) => {
         if (regex.global) regex.lastIndex = 0;
       });
 
-      if (encontrou) vazamentos.push(campo);
+      if (encontrou) {
+        console.log('[RecursoIndefExtractor] LGPD vazamento match:', campo, totalMatches);
+        vazamentos.push(campo);
+      }
     });
 
     return vazamentos;
@@ -387,6 +397,21 @@ export class RecursoIndefExtractor {
 
   _escapeRegExp(valor) {
     return String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  _countRegexMatches(texto, regexes) {
+    let total = 0;
+    regexes.forEach((regex) => {
+      if (!regex) return;
+      const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
+      const cloned = new RegExp(regex.source, flags);
+      let match;
+      while ((match = cloned.exec(texto)) !== null) {
+        total += 1;
+        if (match.index === cloned.lastIndex) cloned.lastIndex += 1;
+      }
+    });
+    return total;
   }
 
   _removerTextosRepetidosTextoParaIa(texto) {
