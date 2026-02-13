@@ -124,21 +124,16 @@ export class RecursoIndefExtractor {
       'form_numeroPeticao',
       'form_numeroProcesso',
       'form_nossoNumero',
-      'form_dataPeticao',
       'form_requerente_nome',
       'form_requerente_cpfCnpjNumINPI',
       'form_requerente_endereco',
-      'form_requerente_cidade',
-      'form_requerente_estado',
       'form_requerente_cep',
-      'form_requerente_naturezaJuridica',
       'form_requerente_email',
       'form_procurador_nome',
       'form_procurador_cpf',
       'form_procurador_email',
       'form_procurador_numeroAPI',
       'form_procurador_numeroOAB',
-      'form_procurador_uf',
       'form_procurador_escritorio_nome',
       'form_procurador_escritorio_cnpj'
     ];
@@ -146,6 +141,12 @@ export class RecursoIndefExtractor {
     const { textoParaIa, tokenMap } = this._tokenizarTextoParaIa(textoPeticaoLimpo, objetoFinal, listaLgpd);
     objetoFinal.textoParaIa = this._removerTextosRepetidosTextoParaIa(textoParaIa);
     this._salvarMapaAnonimizacao(storageKey, tokenMap);
+
+    // Auditoria pós-tokenização para detectar variantes que escaparam.
+    const vazamentosLgpd = this._auditarVazamentoLgpd(objetoFinal.textoParaIa, objetoFinal, listaLgpd);
+    if (vazamentosLgpd.length > 0) {
+      console.warn('[RecursoIndefExtractor] ⚠️ Possivel vazamento LGPD detectado:', vazamentosLgpd);
+    }
     
     // ========================================
     // VALIDAÇÃO
@@ -202,8 +203,6 @@ export class RecursoIndefExtractor {
       tokenToValue: {}
     };
 
-    const escapeRegExp = (valor) => String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
     const createToken = (tipo, valor) => {
       const valueKey = String(valor);
       if (tokenState.valueToToken.has(valueKey)) {
@@ -219,11 +218,13 @@ export class RecursoIndefExtractor {
       return token;
     };
 
-    const replaceAll = (orig, valor, token) => {
-      if (valor == null || valor === '') return orig;
-      const regex = new RegExp(escapeRegExp(valor), 'g');
-      return orig.replace(regex, token);
+    // Substitui com base nas regexes flexíveis geradas por campo.
+    const replaceByRegexes = (orig, regexes, token) => {
+      return regexes.reduce((acc, regex) => acc.replace(regex, token), orig);
     };
+
+    // Estratégia por campo para lidar com separadores/abreviações.
+    const fieldToStrategy = this._getLgpdFieldStrategies();
 
     const fieldToTipo = {
       form_numeroPeticao: 'NUMERO_PETICAO',
@@ -233,8 +234,6 @@ export class RecursoIndefExtractor {
       form_requerente_nome: 'REQUERENTE',
       form_requerente_cpfCnpjNumINPI: 'CPF_CNPJ_REQUERENTE',
       form_requerente_endereco: 'ENDERECO_REQUERENTE',
-      form_requerente_cidade: 'CIDADE_REQUERENTE',
-      form_requerente_estado: 'UF_REQUERENTE',
       form_requerente_cep: 'CEP_REQUERENTE',
       form_requerente_naturezaJuridica: 'NATUREZA_JURIDICA_REQUERENTE',
       form_requerente_email: 'EMAIL_REQUERENTE',
@@ -243,7 +242,6 @@ export class RecursoIndefExtractor {
       form_procurador_email: 'EMAIL_PROCURADOR',
       form_procurador_numeroAPI: 'API_PROCURADOR',
       form_procurador_numeroOAB: 'OAB_PROCURADOR',
-      form_procurador_uf: 'UF_PROCURADOR',
       form_procurador_escritorio_nome: 'ESCRITORIO_PROCURADOR',
       form_procurador_escritorio_cnpj: 'CNPJ_ESCRITORIO'
     };
@@ -256,7 +254,10 @@ export class RecursoIndefExtractor {
       if (!valor) return;
       const tipo = fieldToTipo[campo] || 'DADO_LGPD';
       const token = createToken(tipo, valor);
-      textoTokenizado = replaceAll(textoTokenizado, valor, token);
+
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+      textoTokenizado = replaceByRegexes(textoTokenizado, regexes, token);
     });
 
     // 2) Tokenização de CNPJ (formato inteiro e formatado)
@@ -284,6 +285,108 @@ export class RecursoIndefExtractor {
         valueToToken: Object.fromEntries(tokenState.valueToToken)
       }
     };
+  }
+
+  // Reaplica as regexes da tokenização para garantir ausência de vazamentos.
+  _auditarVazamentoLgpd(textoParaIa, dados, listaLgpd) {
+    if (!textoParaIa) return [];
+    const fieldToStrategy = this._getLgpdFieldStrategies();
+    const vazamentos = [];
+
+    listaLgpd.forEach((campo) => {
+      const valor = dados[campo];
+      if (!valor) return;
+
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+
+      const encontrou = regexes.some((regex) => regex.test(textoParaIa));
+      regexes.forEach((regex) => {
+        if (regex.global) regex.lastIndex = 0;
+      });
+
+      if (encontrou) vazamentos.push(campo);
+    });
+
+    return vazamentos;
+  }
+
+  // Define a estratégia de matching por campo LGPD.
+  _getLgpdFieldStrategies() {
+    return {
+      form_numeroPeticao: 'digits',
+      form_numeroProcesso: 'digits',
+      form_nossoNumero: 'digits',
+      form_procurador_numeroAPI: 'alnum',
+      form_procurador_numeroOAB: 'alnum',
+      form_requerente_cep: 'digits',
+      form_requerente_cpfCnpjNumINPI: 'mixed',
+      form_procurador_cpf: 'digits',
+      form_procurador_escritorio_cnpj: 'digits',
+      form_requerente_nome: 'text',
+      form_procurador_nome: 'text',
+      form_procurador_escritorio_nome: 'text',
+      form_requerente_endereco: 'text'
+    };
+  }
+
+  // Gera regexes (literal + variantes) a partir do valor extraído.
+  _getLgpdRegexesForField(campo, valor, fieldToStrategy) {
+    if (!valor) return [];
+
+    const literalRegex = new RegExp(this._escapeRegExp(valor), 'g');
+    const regexes = [literalRegex];
+    const estrategia = fieldToStrategy[campo];
+    if (!estrategia) return regexes;
+
+    const digits = String(valor).replace(/\D/g, '');
+
+    if (estrategia === 'digits') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+    } else if (estrategia === 'alnum') {
+      const alnumRegex = this._buildFlexibleAlnumRegex(valor);
+      if (alnumRegex) regexes.push(alnumRegex);
+    } else if (estrategia === 'text') {
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
+    } else if (estrategia === 'mixed') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
+    }
+
+    return regexes;
+  }
+
+  _buildFlexibleDigitsRegex(digits) {
+    if (!digits) return null;
+    const pattern = digits.split('').join('[\\s./-]*');
+    return new RegExp(`\\b${pattern}\\b`, 'g');
+  }
+
+  _buildFlexibleAlnumRegex(value) {
+    const compact = String(value).replace(/[^0-9A-Za-z]/g, '');
+    if (!compact) return null;
+    const pattern = compact.split('').map((char) => this._escapeRegExp(char)).join('[\\s./-]*');
+    return new RegExp(pattern, 'gi');
+  }
+
+  _buildFlexibleTextRegex(value) {
+    const tokens = String(value)
+      .replace(/[.,;:/-]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => this._escapeRegExp(token));
+    if (!tokens.length) return null;
+    const separator = '[\\s./,-]+';
+    return new RegExp(tokens.join(separator), 'gi');
+  }
+
+  _escapeRegExp(valor) {
+    return String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   _removerTextosRepetidosTextoParaIa(texto) {
@@ -422,7 +525,11 @@ export class RecursoIndefExtractor {
    */
   _extrairRequerenteNome(texto) {
     const match = texto.match(/Nome(?:\s*\/\s*Raz[ãa]o\s+Social)?\s*:\s*(.*?)\s*(?=CPF\/CNPJ\/N[úu]mero\s+INPI\s*:)/s);
-    return match ? match[1].trim().replace(/\s+/g, ' ') : null;
+    if (!match) return null;
+    return match[1]
+      .trim()
+      .replace(/[./-]+/g, ' ')
+      .replace(/\s+/g, ' ');
   }
   
   /**

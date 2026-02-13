@@ -117,7 +117,25 @@ Técnico: [PESSOA_NATURAL_2]
 
 ### ⚠️ Desafios Identificados
 
-#### 1. **Separação de Dados Compostos**
+#### 1. **Variantes de escrita (separadores e abreviações)**
+
+Os valores extraídos podem aparecer no texto com separadores diferentes, espaçamento variável ou abreviações (ex.: `123.456.789-00`, `12345678900`, `12/345/678 900`). Se a tokenização depender de substituição literal, parte dos dados sensíveis pode escapar.
+
+**Implementação adotada** (petição > recurso indeferimento > marcas):
+
+- **Estratégia por campo** em vez de criar novos campos no schema.
+- **Regex flexível** para números (aceita separadores opcionais).
+- **Regex flexível** para texto (aceita pontuação e múltiplos espaços).
+- **Regex flexível** para alfanuméricos (ex.: OAB/API com UF).
+
+Campos com variantes cobertas:
+
+- `form_numeroPeticao`, `form_numeroProcesso`, `form_nossoNumero`
+- `form_procurador_numeroAPI`, `form_procurador_numeroOAB`
+- `form_requerente_cep`, `form_requerente_cpfCnpjNumINPI`, `form_procurador_cpf`, `form_procurador_escritorio_cnpj`
+- `form_requerente_nome`, `form_procurador_nome`, `form_procurador_escritorio_nome`, `form_requerente_endereco`
+
+#### 2. **Separação de Dados Compostos**
 
 No `_extrairRequerente()`, o texto geralmente vem como:
 ```
@@ -129,7 +147,7 @@ Requerente: João Silva Oliveira - Empresa XYZ LTDA - CPF 123.456.789-00
 - Empresa ← `[PESSOA_JURIDICA_1]`
 - CPF ← `[CPF_1]`
 
-#### 2. **Nomes em `_extrairTextoParecer()`**
+#### 3. **Nomes em `_extrairTextoParecer()`**
 
 O parecer técnico pode conter nomes não capturados pelo extrator:
 ```
@@ -140,7 +158,7 @@ O parecer técnico pode conter nomes não capturados pelo extrator:
 
 **Solução**: Usar NER (Named Entity Recognition) automático ou procurar por padrões adicionais.
 
-#### 3. **Dados Pseudonimizados Incompletos**
+#### 4. **Dados Pseudonimizados Incompletos**
 
 Seu extrator pode omitir dados sensíveis:
 - Endereços mencionados no parecer
@@ -296,6 +314,24 @@ tokenMap: {
 | **LGPD compliance** | ✅ | Pseudonimização é reconhecida | Baixo |
 | **Detectabilidade** | ✅ | Sem PII óbvia | Baixo |
 | **Resistência a re-id** | ⚠️ | Combinação de tokens pode revelar | **Médio** |
+
+---
+
+## ✅ Auditoria de Vazamento (pos-tokenizacao)
+
+Depois de gerar `textoParaIa`, fazemos uma segunda passagem de validacao usando **as mesmas regex flexiveis** da tokenizacao. Se alguma variante ainda casar no texto tokenizado, registramos o campo com possivel vazamento.
+
+Beneficios:
+- Evita confiar apenas na substituicao literal.
+- Detecta casos onde o valor aparece com separadores diferentes.
+- Permite logar ou bloquear envios com risco.
+
+Exemplo de fluxo:
+```javascript
+const { textoParaIa } = tokenizar(...);
+const vazamentos = auditarVazamento(textoParaIa, dados, listaLgpd);
+if (vazamentos.length) console.warn('Vazamentos:', vazamentos);
+```
 
 ---
 
