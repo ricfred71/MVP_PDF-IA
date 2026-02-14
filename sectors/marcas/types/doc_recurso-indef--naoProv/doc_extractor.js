@@ -81,14 +81,14 @@ export class DocRecursoIndefNaoProvExtractor {
     const listaLgpd = [
       'form_numeroProcesso',
       'form_dataDespacho',
-      'form_nomePeticao',
       'form_numeroProtocolo',
       'form_dataApresentacao',
       'form_requerente_nome',
       'form_dataNotificacaoIndeferimento',
-      'form_dataParecer',
-      'form_numeroParecer',
-      'form_marca'
+      'form_marca',
+      'motivoIndeferimento',
+      'anterioridades',
+      'processosConflitantes'
     ];
 
     const textoParecerLimpo = this._removerCabecalhosRodapes(dados.textoParecer || '');
@@ -103,6 +103,12 @@ export class DocRecursoIndefNaoProvExtractor {
 
     // Salva mapa de anonimização na sessão (para reversão posterior)
     this._salvarMapaAnonimizacao(storageKey, tokenMap);
+
+    // Auditoria pós-tokenização para detectar variantes que escaparam.
+    const vazamentosLgpd = this._auditarVazamentoLgpd(dados.textoParaIa, dados, listaLgpd);
+    if (vazamentosLgpd.length > 0) {
+      console.warn('[DocRecursoIndefNaoProvExtractor] ⚠️ Possivel vazamento LGPD detectado:', vazamentosLgpd);
+    }
     
     console.log('[DocRecursoIndefNaoProvExtractor] Extração concluída:', {
       storageKey,
@@ -164,8 +170,6 @@ export class DocRecursoIndefNaoProvExtractor {
       tokenToValue: {}
     };
 
-    const escapeRegExp = (valor) => String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
     const createToken = (tipo, valor) => {
       const valueKey = String(valor);
       if (tokenState.valueToToken.has(valueKey)) {
@@ -181,34 +185,54 @@ export class DocRecursoIndefNaoProvExtractor {
       return token;
     };
 
-    const replaceAll = (orig, valor, token) => {
-      if (valor == null || valor === '') return orig;
-      const regex = new RegExp(escapeRegExp(valor), 'g');
-      return orig.replace(regex, token);
+    const replaceByRegexes = (orig, regexes, token) => {
+      return regexes.reduce((acc, regex) => acc.replace(regex, token), orig);
     };
+
+    const fieldToStrategy = this._getLgpdFieldStrategies();
 
     const fieldToTipo = {
       form_numeroProcesso: 'PROCESSO_PRINCIPAL',
       form_dataDespacho: 'DATA_DESPACHO',
-      form_nomePeticao: 'NOME_PETICAO',
       form_numeroProtocolo: 'PROTOCOLO_PRINCIPAL',
       form_dataApresentacao: 'DATA_APRESENTACAO',
       form_requerente_nome: 'REQUERENTE',
       form_dataNotificacaoIndeferimento: 'DATA_NOTIFICACAO_INDEFERIMENTO',
-      form_dataParecer: 'DATA_PARECER',
-      form_numeroParecer: 'NUMERO_PARECER',
-      form_marca: 'MARCA'
+      form_marca: 'MARCA',
+      motivoIndeferimento: 'MOTIVO_INDEFERIMENTO',
+      anterioridades: 'PROCESSO_ANTERIOR',
+      processosConflitantes: 'PROCESSO_CONFLITANTE'
     };
 
     let textoTokenizado = texto;
+
+    const aplicarTokenizacao = (campo, valor) => {
+      if (valor == null || valor === '') return;
+      const tipo = fieldToTipo[campo] || 'DADO_LGPD';
+      const token = createToken(tipo, valor);
+
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+
+      const totalMatches = this._countRegexMatches(textoTokenizado, regexes);
+      if (totalMatches === 0) {
+        console.log('[DocRecursoIndefNaoProvExtractor] LGPD sem match:', campo);
+      } else {
+        console.log('[DocRecursoIndefNaoProvExtractor] LGPD matches:', campo, totalMatches);
+      }
+
+      textoTokenizado = replaceByRegexes(textoTokenizado, regexes, token);
+    };
 
     // 1) Tokenização semântica dos dados já extraídos (lista LGPD)
     listaLgpd.forEach((campo) => {
       const valor = dados[campo];
       if (!valor) return;
-      const tipo = fieldToTipo[campo] || 'DADO_LGPD';
-      const token = createToken(tipo, valor);
-      textoTokenizado = replaceAll(textoTokenizado, valor, token);
+      if (Array.isArray(valor)) {
+        valor.forEach((item) => aplicarTokenizacao(campo, item));
+        return;
+      }
+      aplicarTokenizacao(campo, valor);
     });
 
     // 2) Tokenização de CNPJ (formato inteiro e formatado)
@@ -217,11 +241,15 @@ export class DocRecursoIndefNaoProvExtractor {
     textoTokenizado = textoTokenizado.replace(cnpjRegexFormatado, (match) => createToken('CNPJ', match));
     textoTokenizado = textoTokenizado.replace(cnpjRegexInteiro, (match) => createToken('CNPJ', match));
 
-    // 3) Tokenização de números de protocolo (12 dígitos)
+    // 3) Tokenização de CPF (11 dígitos)
+    const cpfRegex = /\b\d{11}\b/g;
+    textoTokenizado = textoTokenizado.replace(cpfRegex, (match) => createToken('CPF', match));
+
+    // 4) Tokenização de números de protocolo (12 dígitos)
     const protocoloRegex = /\b\d{12}\b/g;
     textoTokenizado = textoTokenizado.replace(protocoloRegex, (match) => createToken('PROTOCOLO_CITADO', match));
 
-    // 4) Tokenização de números de processo (9 dígitos)
+    // 5) Tokenização de números de processo (9 dígitos)
     const processoRegex = /\b\d{9}\b/g;
     textoTokenizado = textoTokenizado.replace(processoRegex, (match) => createToken('PROCESSO_CITADO', match));
 
@@ -232,6 +260,129 @@ export class DocRecursoIndefNaoProvExtractor {
         valueToToken: Object.fromEntries(tokenState.valueToToken)
       }
     };
+  }
+
+  _auditarVazamentoLgpd(textoParaIa, dados, listaLgpd) {
+    if (!textoParaIa) return [];
+    const fieldToStrategy = this._getLgpdFieldStrategies();
+    const vazamentos = [];
+
+    const avaliarCampo = (campo, valor) => {
+      if (valor == null || valor === '') return;
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+
+      const totalMatches = this._countRegexMatches(textoParaIa, regexes);
+      const encontrou = totalMatches > 0;
+      regexes.forEach((regex) => {
+        if (regex.global) regex.lastIndex = 0;
+      });
+
+      if (encontrou) {
+        console.log('[DocRecursoIndefNaoProvExtractor] LGPD vazamento match:', campo, totalMatches);
+        vazamentos.push(campo);
+      }
+    };
+
+    listaLgpd.forEach((campo) => {
+      const valor = dados[campo];
+      if (!valor) return;
+      if (Array.isArray(valor)) {
+        valor.forEach((item) => avaliarCampo(campo, item));
+        return;
+      }
+      avaliarCampo(campo, valor);
+    });
+
+    return vazamentos;
+  }
+
+  _getLgpdFieldStrategies() {
+    return {
+      form_numeroProcesso: 'digits',
+      form_dataDespacho: 'digits',
+      form_numeroProtocolo: 'digits',
+      form_dataApresentacao: 'digits',
+      form_requerente_nome: 'text',
+      form_dataNotificacaoIndeferimento: 'digits',
+      form_marca: 'text',
+      motivoIndeferimento: 'text',
+      anterioridades: 'digits',
+      processosConflitantes: 'digits'
+    };
+  }
+
+  _getLgpdRegexesForField(campo, valor, fieldToStrategy) {
+    if (!valor) return [];
+
+    const literalRegex = new RegExp(this._escapeRegExp(valor), 'g');
+    const regexes = [literalRegex];
+    const estrategia = fieldToStrategy[campo];
+    if (!estrategia) return regexes;
+
+    const digits = String(valor).replace(/\D/g, '');
+
+    if (estrategia === 'digits') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+    } else if (estrategia === 'alnum') {
+      const alnumRegex = this._buildFlexibleAlnumRegex(valor);
+      if (alnumRegex) regexes.push(alnumRegex);
+    } else if (estrategia === 'text') {
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
+    } else if (estrategia === 'mixed') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
+    }
+
+    return regexes;
+  }
+
+  _buildFlexibleDigitsRegex(digits) {
+    if (!digits) return null;
+    const pattern = digits.split('').join('[\\s./-]*');
+    return new RegExp(`\\b${pattern}\\b`, 'g');
+  }
+
+  _buildFlexibleAlnumRegex(value) {
+    const compact = String(value).replace(/[^0-9A-Za-z]/g, '');
+    if (!compact) return null;
+    const pattern = compact.split('').map((char) => this._escapeRegExp(char)).join('[\\s./-]*');
+    return new RegExp(pattern, 'gi');
+  }
+
+  _buildFlexibleTextRegex(value) {
+    const tokens = String(value)
+      .replace(/[.,;:/-]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => this._escapeRegExp(token));
+    if (!tokens.length) return null;
+    const separator = '[\\s./,-]+';
+    return new RegExp(tokens.join(separator), 'gi');
+  }
+
+  _escapeRegExp(valor) {
+    return String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  _countRegexMatches(texto, regexes) {
+    let total = 0;
+    regexes.forEach((regex) => {
+      if (!regex) return;
+      const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
+      const cloned = new RegExp(regex.source, flags);
+      let match;
+      while ((match = cloned.exec(texto)) !== null) {
+        total += 1;
+        if (match.index === cloned.lastIndex) cloned.lastIndex += 1;
+      }
+    });
+    return total;
   }
 
   _removerCabecalhosRodapes(texto) {

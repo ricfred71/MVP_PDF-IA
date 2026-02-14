@@ -81,39 +81,39 @@ Fonte: [sectors/marcas/types/pet_recurso-indef/pet_extractor.js](sectors/marcas/
 ## Patentes > Documento Oficial > Recurso contra Indeferimento — Não Provido
 Fonte: [sectors/patentes/types/doc_recurso-indef--naoProv/doc_extractor.js](sectors/patentes/types/doc_recurso-indef--naoProv/doc_extractor.js) (campos extraídos) e [sectors/patentes/types/doc_recurso-indef--naoProv/doc_schema.js](sectors/patentes/types/doc_recurso-indef--naoProv/doc_schema.js) (schema)
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `categoria` | string | Categoria do documento oficial (valor padrão: documento_oficial). |
-| `tipo` | string | Tipo específico do documento. |
-| `subtipo` | string | Subtipo do documento. |
-| `confianca` | number | Confiança da classificação (0–100). |
-| `setor` | string | Setor do documento (valor padrão: patentes). |
-| `form_numeroProcesso` | string | Número do processo (BR + dígitos; pode conter sufixo “-d”). |
-| `form_numeroPct` | string | Número PCT (se aplicável). |
-| `form_dataDeposito` | string | Data de depósito (DD/MM/YYYY). |
-| `form_prioridadeUnionista` | string | Prioridade unionista. |
-| `form_requerente_nome` | string | Nome do requerente. |
-| `form_inventor_nome` | string | Nome do inventor. |
-| `form_titulo` | string | Título do pedido/patente. |
-| `textoAutomaticoEtapa1` | string | Texto automático gerado para a etapa 1. |
-| `textoAutomaticoEtapa2` | string | Texto automático gerado para a etapa 2. |
-| `dataDespacho` | string | Data do despacho. |
-| `dataNotificacaoIndeferimento` | string | Data de notificação do indeferimento. |
-| `nomeDecisao` | string | Nome da decisão. |
-| `tipoDespacho` | string | Tipo de despacho (Recurso não provido). |
-| `form_decisao` | string | Decisão registrada no documento. |
-| `decisao` | string | Decisão (indeferido_mantido). |
-| `textoParecer` | string | Texto do parecer. |
-| `tecnico` | string | Técnico responsável. |
-| `artigosInvocados` | array | Lista de artigos invocados. |
-| `motivoIndeferimento` | string | Motivo do indeferimento. |
-| `anterioridades` | array | Anterioridades citadas. |
-| `processosConflitantes` | array | Processos conflitantes citados. |
-| `textoParaIa` | string | Texto do parecer anonimizado para IA. |
-| `textoCompleto` | string | Texto completo do documento. |
-| `urlPdf` | string | URL do PDF. |
-| `dataProcessamento` | string | Data/hora do processamento. |
-| `processor` | string | Identificador do processador. |
+| Campo                          | Tipo   | Descrição                                                         |
+| ------------------------------ | ------ | ----------------------------------------------------------------- |
+| `categoria`                    | string | Categoria do documento oficial (valor padrão: documento_oficial). |
+| `tipo`                         | string | Tipo específico do documento.                                     |
+| `subtipo`                      | string | Subtipo do documento.                                             |
+| `confianca`                    | number | Confiança da classificação (0–100).                               |
+| `setor`                        | string | Setor do documento (valor padrão: patentes).                      |
+| `form_numeroProcesso`          | string | Número do processo (BR + dígitos; pode conter sufixo “-d”).       |
+| `form_numeroPct`               | string | Número PCT (se aplicável).                                        |
+| `form_dataDeposito`            | string | Data de depósito (DD/MM/YYYY).                                    |
+| `form_prioridadeUnionista`     | string | Prioridade unionista.                                             |
+| `form_requerente_nome`         | string | Nome do requerente.                                               |
+| `form_inventor_nome`           | string | Nome do inventor.                                                 |
+| `form_titulo`                  | string | Título do pedido/patente.                                         |
+| `textoAutomaticoEtapa1`        | string | Texto automático gerado para a etapa 1.                           |
+| `textoAutomaticoEtapa2`        | string | Texto automático gerado para a etapa 2.                           |
+| `dataDespacho`                 | string | Data do despacho.                                                 |
+| `dataNotificacaoIndeferimento` | string | Data de notificação do indeferimento.                             |
+| `nomeDecisao`                  | string | Nome da decisão.                                                  |
+| `tipoDespacho`                 | string | Tipo de despacho (Recurso não provido).                           |
+| `form_decisao`                 | string | Decisão registrada no documento.                                  |
+| `decisao`                      | string | Decisão (indeferido_mantido).                                     |
+| `textoParecer`                 | string | Texto do parecer.                                                 |
+| `tecnico`                      | string | Técnico responsável.                                              |
+| `artigosInvocados`             | array  | Lista de artigos invocados.                                       |
+| `motivoIndeferimento`          | string | Motivo do indeferimento.                                          |
+| `anterioridades`               | array  | Anterioridades citadas.                                           |
+| `processosConflitantes`        | array  | Processos conflitantes citados.                                   |
+| `textoParaIa`                  | string | Texto do parecer anonimizado para IA.                             |
+| `textoCompleto`                | string | Texto completo do documento.                                      |
+| `urlPdf`                       | string | URL do PDF.                                                       |
+| `dataProcessamento`            | string | Data/hora do processamento.                                       |
+| `processor`                    | string | Identificador do processador.                                     |
 
 ## Marcas > Documento Oficial > Recurso contra Indeferimento — Não Provido
 Fonte: [sectors/marcas/types/doc_recurso-indef--naoProv/doc_extractor.js](sectors/marcas/types/doc_recurso-indef--naoProv/doc_extractor.js) (campos extraídos) e [sectors/marcas/types/doc_recurso-indef--naoProv/doc_schema.js](sectors/marcas/types/doc_recurso-indef--naoProv/doc_schema.js) (schema)
