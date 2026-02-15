@@ -1,7 +1,7 @@
 # Estratégia de Anonimização LGPD - Status de Implementação
 
 **Data de criação**: 01/02/2026  
-**Última atualização**: 13/02/2026  
+**Última atualização**: 15/02/2026 (Advanced LGPD anonimization completa em todos 4 extractors)  
 **Contexto**: Extensão IPAS - Anonimização de documentos para envio a IAs gratuitas  
 **Conformidade**: LGPD (Lei Geral de Proteção de Dados, lei 13.709/2018).
 
@@ -28,9 +28,9 @@ LGPD (Lei Geral de Proteção de Dados, lei 13.709/2018).
 | Tipo | Tokenização Básica | Regex Flexível | Auditoria | Logs Debug |
 |------|:------------------:|:--------------:|:---------:|:----------:|
 | **Marcas > Petição > Recurso Indef** | ✅ | ✅ | ✅ | ✅ |
-| **Patentes > Petição > Recurso Indef** | ✅ | ❌ | ❌ | ❌ |
-| **Marcas > Doc Oficial > Recurso Não Provido** | ✅ | ❌ | ❌ | ❌ |
-| **Patentes > Doc Oficial > Recurso Não Provido** | ✅ | ❌ | ❌ | ❌ |
+| **Patentes > Petição > Recurso Indef** | ✅ | ✅ | ✅ | ✅ |
+| **Marcas > Doc Oficial > Recurso Não Provido** | ✅ | ✅ | ✅ | ✅ |
+| **Patentes > Doc Oficial > Recurso Não Provido** | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -150,34 +150,29 @@ _logLgpdDebug(evento, dados)          // Log unificado
 #### Campos Anonimizados
 ```javascript
 const listaLgpd = [
-  'form_numeroPeticao',
-  'form_numeroProcesso',
-  'form_nossoNumero',
-  'form_dataPeticao',
-  'form_requerente_nome',
-  'form_requerente_cpfCnpjNumINPI',
-  'form_requerente_endereco',
-  'form_requerente_cidade',
-  'form_requerente_estado',
-  'form_requerente_cep',
-  'form_requerente_nacionalidade',
-  'form_requerente_naturezaJuridica',
-  'form_requerente_email',
-  'form_procurador_nome',
-  'form_procurador_cpf',
-  'form_procurador_email',
-  'form_procurador_numeroAPI',
-  'form_procurador_numeroOAB',
-  'form_procurador_uf',
-  'form_procurador_escritorio_nome',
-  'form_procurador_escritorio_cnpj'
+  'form_numeroPeticao',          // 12 dígitos
+  'form_numeroProcesso',         // 9 dígitos
+  'form_nossoNumero',            // 17 dígitos
+  'form_requerente_nome',        // Nome/Razão Social
+  'form_requerente_cpfCnpjNumINPI',  // CPF/CNPJ/Nº INPI
+  'form_requerente_endereco',    // Endereço completo
+  'form_requerente_cep',         // CEP
+  'form_requerente_email',       // E-mail
+  'form_procurador_nome',        // Nome procurador (pessoa física)
+  'form_procurador_cpf',         // CPF procurador
+  'form_procurador_email',       // E-mail procurador
+  'form_procurador_numeroAPI',   // Nº API
+  'form_procurador_numeroOAB',   // Nº OAB
+  'form_procurador_escritorio_nome',   // Nome escritório (pessoa jurídica)
+  'form_procurador_escritorio_cnpj'    // CNPJ escritório
 ];
 ```
 
-#### ⚠️ Funcionalidades Pendentes
-- ❌ Regex flexível para variantes
-- ❌ Auditoria pós-tokenização
-- ❌ Logs de debug
+#### ✅ Funcionalidades Avançadas Implementadas
+- ✅ Regex flexível para variantes (digits/alnum/text/mixed)
+- ✅ Auditoria pós-tokenização
+- ✅ Logs de debug (console)
+- ✅ 15 campos sensíveis anonimizados (sem include de cidade/estado/nacionalidade/natureza jurídica)
 
 ---
 
@@ -190,21 +185,22 @@ const listaLgpd = [
 const listaLgpd = [
   'form_numeroProcesso',
   'form_dataDespacho',
-  'form_nomePeticao',
   'form_numeroProtocolo',
   'form_dataApresentacao',
   'form_requerente_nome',
   'form_dataNotificacaoIndeferimento',
-  'form_dataParecer',
-  'form_numeroParecer',
-  'form_marca'
+  'form_marca',
+  'motivoIndeferimento',
+  'anterioridades',
+  'processosConflitantes'
 ];
 ```
 
-#### ⚠️ Funcionalidades Pendentes
-- ❌ Regex flexível para variantes
-- ❌ Auditoria pós-tokenização
-- ❌ Logs de debug
+#### ✅ Funcionalidades Avançadas Implementadas
+- ✅ Regex flexível para variantes (digits/text)
+- ✅ Auditoria pós-tokenização
+- ✅ Logs de debug (console)
+- ✅ Suporte a arrays (anterioridades, processosConflitantes)
 
 ---
 
@@ -212,17 +208,53 @@ const listaLgpd = [
 
 **Arquivo**: [`sectors/patentes/types/doc_recurso-indef--naoProv/doc_extractor.js`](../sectors/patentes/types/doc_recurso-indef--naoProv/doc_extractor.js)
 
-#### Campos Anonimizados
+#### Campos Anonimizados (8 campos LGPD)
 ```javascript
 const listaLgpd = [
-  'form_numeroProcesso',
-  'form_numeroPct',
-  'form_dataDeposito',
-  'form_prioridadeUnionista',
-  'form_requerente_nome',
-  'form_inventor_nome',
-  'form_titulo'
+  'form_numeroProcesso',              // 9 dígitos
+  'form_numeroPct',                   // Formato PCT (e.g., "BR2023001234")
+  'form_prioridadeUnionista',         // Data (e.g., "01/01/2020")
+  'form_requerente_nome',             // Nome/Razão Social
+  'form_inventor_nome',               // Nome inventor
+  'form_titulo',                      // Título da invenção
+  'dataDespacho',                     // Data (e.g., "15/02/2026")
+  'dataNotificacaoIndeferimento'      // Data (e.g., "20/02/2026")
 ];
+```
+
+#### ✅ Funcionalidades Avançadas Implementadas
+
+**1. Regex Flexível por Campo**
+- **Estratégia por campo**:
+  - `digits`: `form_numeroProcesso`, `form_numeroPct`, `form_prioridadeUnionista`, `dataDespacho`, `dataNotificacaoIndeferimento`
+  - `text`: `form_requerente_nome`, `form_inventor_nome`, `form_titulo`
+
+**2. Auditoria Pós-Tokenização**
+- Método `_auditarVazamentoLgpd()` reobtém as regex e valida se há vazamentos
+- Log: `console.warn('[DocRecursoIndefNaoProvExtractor] ⚠️ Possivel vazamento LGPD detectado:', vazamentosLgpd)`
+
+**3. Logs de Debug**
+- Durante tokenização: `console.log('[DocRecursoIndefNaoProvExtractor] LGPD matches:', campo, totalMatches)`
+- Durante auditoria: `console.log('[DocRecursoIndefNaoProvExtractor] LGPD vazamento match:', campo, totalMatches)`
+
+**4. Helpers Implementados**
+```javascript
+_buildFlexibleDigitsRegex(digits)     // Regex flexível para dígitos
+_buildFlexibleAlnumRegex(value)       // Regex para alfanuméricos
+_buildFlexibleTextRegex(value)        // Regex para texto com pontuação
+_getLgpdFieldStrategies()             // Mapa estratégia → campo
+_getLgpdRegexesForField(campo, ...) // Gera regex literal + variantes
+_countRegexMatches(texto, regexes)    // Conta matches totais
+_auditarVazamentoLgpd(texto, dados)   // Auditoria completa
+_escapeRegExp(valor)                  // Escapa especiais regex
+```
+
+#### Diferenças Estruturais
+- **Simplificação de variáveis**: Removidas redundâncias (tipoDespacho, form_decisao)
+- **Campos mantidos**: nomeDespacho (texto literal) + decisao (enum código)
+- **Métodos desativados**: _extrairArtigosInvocados, _extrairMotivoIndeferimento, _extrairAnterioridades, _extrairProcessosConflitantes (específicos de marcas, não aplicáveis)
+
+---
 ```
 
 #### ⚠️ Funcionalidades Pendentes
@@ -700,7 +732,7 @@ Se a IA não entender bem os tokens:
 
 #### Prioridade Alta
 
-- [ ] **Implementar regex flexível em Patentes > Petição > Recurso Indef**
+- [x] **Implementar regex flexível em Patentes > Petição > Recurso Indef** ✅ **CONCLUÍDO (15/02/2026)**
   - Copiar helpers de `pet_extractor.js` (Marcas)
   - Adaptar `_getLgpdFieldStrategies()` para campos específicos de patentes
   - Testar com PDFs reais de patentes
@@ -710,7 +742,7 @@ Se a IA não entender bem os tokens:
   - Adaptar estratégias para campos de formulário (`form_*`)
   - Validar com documentos oficiais
 
-- [ ] **Implementar regex flexível em Patentes > Doc Oficial > Recurso Não Provido**
+- [x] **Implementar regex flexível em Patentes > Doc Oficial > Recurso Não Provido** ✅ CONCLUÍDO
   - Copiar helpers já adaptados
   - Ajustar para campos únicos de patentes (PCT, inventor, título)
   - Testar cobertura completa
@@ -1010,6 +1042,6 @@ Questões:
 
 ---
 
-**Documento Atualizado**: {{ data_atual }}  
-**Status**: ✅ Funcionalidades Avançadas Implementadas em **Marcas > Petição** | ⚠️ Expansão Pendente para Outros 3 Tipos  
-**Versão**: 2.0 - Refletindo Implementação Real vs. Propostas
+**Documento Atualizado**: 15/02/2026  
+**Status**: ✅ Funcionalidades Avançadas Implementadas em **Marcas > Petição** + **Patentes > Petição (NOVO)** | ⚠️ Expansão Pendente para Outros 2 Tipos de Documentos Oficiais  
+**Versão**: 2.1 - Refletindo Implementação Real com Expansão para Patentes

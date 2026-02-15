@@ -127,22 +127,16 @@ export class RecursoIndefExtractor {
       'form_numeroPeticao',
       'form_numeroProcesso',
       'form_nossoNumero',
-      'form_dataPeticao',
       'form_requerente_nome',
       'form_requerente_cpfCnpjNumINPI',
       'form_requerente_endereco',
-      'form_requerente_cidade',
-      'form_requerente_estado',
       'form_requerente_cep',
-      'form_requerente_nacionalidade',
-      'form_requerente_naturezaJuridica',
       'form_requerente_email',
       'form_procurador_nome',
       'form_procurador_cpf',
       'form_procurador_email',
       'form_procurador_numeroAPI',
       'form_procurador_numeroOAB',
-      'form_procurador_uf',
       'form_procurador_escritorio_nome',
       'form_procurador_escritorio_cnpj'
     ];
@@ -150,6 +144,12 @@ export class RecursoIndefExtractor {
     const { textoParaIa, tokenMap } = this._tokenizarTextoParaIa(textoPeticaoLimpo, objetoFinal, listaLgpd);
     objetoFinal.textoParaIa = this._removerTextosRepetidosTextoParaIa(textoParaIa);
     this._salvarMapaAnonimizacao(storageKey, tokenMap);
+
+    // Auditoria pós-tokenização para detectar variantes que escaparam.
+    const vazamentosLgpd = this._auditarVazamentoLgpd(objetoFinal.textoParaIa, objetoFinal, listaLgpd);
+    if (vazamentosLgpd.length > 0) {
+      console.warn('[RecursoIndefExtractor] ⚠️ Possivel vazamento LGPD detectado:', vazamentosLgpd);
+    }
     
     // ========================================
     // VALIDAÇÃO
@@ -206,8 +206,6 @@ export class RecursoIndefExtractor {
       tokenToValue: {}
     };
 
-    const escapeRegExp = (valor) => String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
     const createToken = (tipo, valor) => {
       const valueKey = String(valor);
       if (tokenState.valueToToken.has(valueKey)) {
@@ -223,27 +221,23 @@ export class RecursoIndefExtractor {
       return token;
     };
 
-    const replaceAll = (orig, valor, token) => {
-      if (valor == null || valor === '') return orig;
-      const regex = new RegExp(escapeRegExp(valor), 'g');
-      return orig.replace(regex, token);
+    // Substitui com base nas regexes flexíveis geradas por campo.
+    const replaceByRegexes = (orig, regexes, token) => {
+      return regexes.reduce((acc, regex) => acc.replace(regex, token), orig);
     };
+
+    // Estratégia por campo para lidar com separadores/abreviações.
+    const fieldToStrategy = this._getLgpdFieldStrategies();
 
     const fieldToTipo = {
       form_numeroPeticao: 'NUMERO_PETICAO',
-      form_numeroPct: 'NUMERO_PCT',
-      form_dataDeposito: 'DATA_DEPOSITO',
-      form_inventor_nome: 'INVENTOR',
       form_numeroProcesso: 'PROCESSO_PRINCIPAL',
       form_nossoNumero: 'NOSSO_NUMERO',
       form_dataPeticao: 'DATA_PETICAO',
       form_requerente_nome: 'REQUERENTE',
       form_requerente_cpfCnpjNumINPI: 'CPF_CNPJ_REQUERENTE',
       form_requerente_endereco: 'ENDERECO_REQUERENTE',
-      form_requerente_cidade: 'CIDADE_REQUERENTE',
-      form_requerente_estado: 'UF_REQUERENTE',
       form_requerente_cep: 'CEP_REQUERENTE',
-      form_requerente_nacionalidade: 'NACIONALIDADE_REQUERENTE',
       form_requerente_naturezaJuridica: 'NATUREZA_JURIDICA_REQUERENTE',
       form_requerente_email: 'EMAIL_REQUERENTE',
       form_procurador_nome: 'PROCURADOR',
@@ -251,7 +245,6 @@ export class RecursoIndefExtractor {
       form_procurador_email: 'EMAIL_PROCURADOR',
       form_procurador_numeroAPI: 'API_PROCURADOR',
       form_procurador_numeroOAB: 'OAB_PROCURADOR',
-      form_procurador_uf: 'UF_PROCURADOR',
       form_procurador_escritorio_nome: 'ESCRITORIO_PROCURADOR',
       form_procurador_escritorio_cnpj: 'CNPJ_ESCRITORIO'
     };
@@ -264,7 +257,16 @@ export class RecursoIndefExtractor {
       if (!valor) return;
       const tipo = fieldToTipo[campo] || 'DADO_LGPD';
       const token = createToken(tipo, valor);
-      textoTokenizado = replaceAll(textoTokenizado, valor, token);
+
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+      const totalMatches = this._countRegexMatches(textoTokenizado, regexes);
+      if (totalMatches === 0) {
+        console.log('[RecursoIndefExtractor] LGPD sem match:', campo);
+      } else {
+        console.log('[RecursoIndefExtractor] LGPD matches:', campo, totalMatches);
+      }
+      textoTokenizado = replaceByRegexes(textoTokenizado, regexes, token);
     });
 
     // 2) Tokenização de CNPJ (formato inteiro e formatado)
@@ -292,6 +294,127 @@ export class RecursoIndefExtractor {
         valueToToken: Object.fromEntries(tokenState.valueToToken)
       }
     };
+  }
+
+  // Reaplica as regexes da tokenização para garantir ausência de vazamentos.
+  _auditarVazamentoLgpd(textoParaIa, dados, listaLgpd) {
+    if (!textoParaIa) return [];
+    const fieldToStrategy = this._getLgpdFieldStrategies();
+    const vazamentos = [];
+
+    listaLgpd.forEach((campo) => {
+      const valor = dados[campo];
+      if (!valor) return;
+
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+
+      const totalMatches = this._countRegexMatches(textoParaIa, regexes);
+      const encontrou = totalMatches > 0;
+      regexes.forEach((regex) => {
+        if (regex.global) regex.lastIndex = 0;
+      });
+
+      if (encontrou) {
+        console.log('[RecursoIndefExtractor] LGPD vazamento match:', campo, totalMatches);
+        vazamentos.push(campo);
+      }
+    });
+
+    return vazamentos;
+  }
+
+  // Define a estratégia de matching por campo LGPD.
+  _getLgpdFieldStrategies() {
+    return {
+      form_numeroPeticao: 'digits',
+      form_numeroProcesso: 'digits',
+      form_nossoNumero: 'digits',
+      form_procurador_numeroAPI: 'alnum',
+      form_procurador_numeroOAB: 'alnum',
+      form_requerente_cep: 'digits',
+      form_requerente_cpfCnpjNumINPI: 'mixed',
+      form_procurador_cpf: 'digits',
+      form_procurador_escritorio_cnpj: 'digits',
+      form_requerente_nome: 'text',
+      form_procurador_nome: 'text',
+      form_procurador_escritorio_nome: 'text',
+      form_requerente_endereco: 'text'
+    };
+  }
+
+  // Gera regexes (literal + variantes) a partir do valor extraído.
+  _getLgpdRegexesForField(campo, valor, fieldToStrategy) {
+    if (!valor) return [];
+
+    const literalRegex = new RegExp(this._escapeRegExp(valor), 'g');
+    const regexes = [literalRegex];
+    const estrategia = fieldToStrategy[campo];
+    if (!estrategia) return regexes;
+
+    const digits = String(valor).replace(/\D/g, '');
+
+    if (estrategia === 'digits') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+    } else if (estrategia === 'alnum') {
+      const alnumRegex = this._buildFlexibleAlnumRegex(valor);
+      if (alnumRegex) regexes.push(alnumRegex);
+    } else if (estrategia === 'text') {
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
+    } else if (estrategia === 'mixed') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
+    }
+
+    return regexes;
+  }
+
+  _buildFlexibleDigitsRegex(digits) {
+    if (!digits) return null;
+    const pattern = digits.split('').join('[\\s./-]*');
+    return new RegExp(`\\b${pattern}\\b`, 'g');
+  }
+
+  _buildFlexibleAlnumRegex(value) {
+    const compact = String(value).replace(/[^0-9A-Za-z]/g, '');
+    if (!compact) return null;
+    const pattern = compact.split('').map((char) => this._escapeRegExp(char)).join('[\\s./-]*');
+    return new RegExp(pattern, 'gi');
+  }
+
+  _buildFlexibleTextRegex(value) {
+    const tokens = String(value)
+      .replace(/[.,;:/-]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => this._escapeRegExp(token));
+    if (!tokens.length) return null;
+    const separator = '[\\s./,-]+';
+    return new RegExp(tokens.join(separator), 'gi');
+  }
+
+  _escapeRegExp(valor) {
+    return String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  _countRegexMatches(texto, regexes) {
+    let total = 0;
+    regexes.forEach((regex) => {
+      if (!regex) return;
+      const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
+      const cloned = new RegExp(regex.source, flags);
+      let match;
+      while ((match = cloned.exec(texto)) !== null) {
+        total += 1;
+        if (match.index === cloned.lastIndex) cloned.lastIndex += 1;
+      }
+    });
+    return total;
   }
 
   _removerTextosRepetidosTextoParaIa(texto) {
@@ -523,12 +646,26 @@ export class RecursoIndefExtractor {
   }
   
   /**
-   * Extrai nome do procurador (nome do escritório)
-   * O nome do procurador na estrutura esperada é o nome do escritório
+   * Extrai nome do procurador
+   * Primeira ocorrência de "Nome ou Razão Social:" após "Dados do Procurador\nEscritório:"
    */
   _extrairProcuradorNome(texto) {
-    // Busca o nome do escritório após "Escrit[óo]rio:"
-    return this._extrairEscritorioNome(texto);
+    // Regra: primeira "Nome ou Razão Social:" após "Dados do Procurador" e "Escritório:"
+    let match = texto.match(/Dados\s+do\s+Procurador[\s\S]*?Escrit[óo]rio\s*:[\s\S]*?Nome\s+ou\s+Raz[ãa]o\s+Social\s*:\s*([^\n]+)/i);
+    if (match) return match[1].trim().replace(/\s+/g, ' ');
+
+    const secaoProcurador = this._extrairSecaoProcurador(texto);
+    const nomeNaSecao = this._extrairNomeProcuradorNaSecao(secaoProcurador);
+    if (nomeNaSecao) return nomeNaSecao;
+
+    // Fallback: tenta localizar um rótulo direto de procurador fora da seção
+    match = texto.match(/Procurador(?:\(a\))?\s*:\s*([^\n]+)/i);
+    if (match) return match[1].trim().replace(/\s+/g, ' ');
+
+    match = texto.match(/Dados\s+do\s+Procurador[\s\S]*?Nome\s*:\s*([^\n]+)/i);
+    if (match) return match[1].trim().replace(/\s+/g, ' ');
+
+    return null;
   }
   
   /**
@@ -590,25 +727,60 @@ export class RecursoIndefExtractor {
   
   /**
    * Extrai nome do escritório
-   * Busca por "Escrit[óo]rio:" seguido de "Nome ou Raz[ãa]o Social:"
+   * Segunda ocorrência de "Nome ou Razão Social:" após "Dados do Procurador\nEscritório:"
    */
   _extrairEscritorioNome(texto) {
-    // Padrão 1: Busca "Nome ou Razão Social:" na seção de procurador/escritório
-    let match = texto.match(/Nome\s+ou\s+Raz[ãa]o\s+Social\s*:\s*([^\n]+)/i);
-    if (match) {
-      const nome = match[1].trim();
-      // Verifica se está na seção de procurador (não requerente) procurando por "Escritório" ou "Procurador" nas linhas anteriores
-      return nome.length > 0 ? nome : null;
+    // Regra: captura a segunda "Nome ou Razão Social:" após "Dados do Procurador" e "Escritório:"
+    const match = texto.match(/Dados\s+do\s+Procurador[\s\S]*?Escrit[óo]rio\s*:([\s\S]*)/i);
+    if (!match) return null;
+    
+    const blocoEscritorio = match[1];
+    const regex = /Nome\s+ou\s+Raz[ãa]o\s+Social\s*:\s*([^\n]+)/gi;
+    const ocorrencias = [];
+    let m;
+    
+    while ((m = regex.exec(blocoEscritorio)) !== null) {
+      ocorrencias.push(m[1].trim());
     }
     
-    // Padrão 2: Após "Escritório:" procura "Nome ou Razão Social:"
-    match = texto.match(/Escrit[óo]rio\s*:[\s\S]*?Nome\s+ou\s+Raz[ãa]o\s+Social\s*:\s*([^\n]+)/i);
-    if (match) return match[1].trim();
+    // Retorna a segunda ocorrência (índice 1)
+    if (ocorrencias.length >= 2) {
+      return ocorrencias[1].replace(/\s+/g, ' ');
+    }
     
-    // Padrão 3: Busca por "Dados do Procurador"
-    match = texto.match(/Dados\s+do\s+Procurador[\s\S]*?Nome\s+ou\s+Raz[ãa]o\s+Social\s*:\s*([^\n]+)/i);
-    if (match) return match[1].trim();
+    // Fallback: se houver apenas uma ocorrência, retorna ela
+    if (ocorrencias.length === 1) {
+      return ocorrencias[0].replace(/\s+/g, ' ');
+    }
     
+    return null;
+  }
+
+  _extrairSecaoProcurador(texto) {
+    if (!texto) return null;
+
+    const inicioMatch = texto.match(/Dados\s+do\s+Procurador/i);
+    if (!inicioMatch || inicioMatch.index == null) return null;
+
+    const textoDesdeInicio = texto.slice(inicioMatch.index);
+    const fimMatch = textoDesdeInicio.match(/Dados\s+do\s+Escrit[óo]rio|Escrit[óo]rio\s*:|Assinatura|Declaro/i);
+    const fimIndex = fimMatch && fimMatch.index != null ? fimMatch.index : textoDesdeInicio.length;
+
+    return textoDesdeInicio.slice(0, fimIndex);
+  }
+
+  _extrairNomeProcuradorNaSecao(secao) {
+    if (!secao) return null;
+
+    let match = secao.match(/Nome\s+do\s+Procurador\s*:\s*([^\n]+)/i);
+    if (match) return match[1].trim().replace(/\s+/g, ' ');
+
+    match = secao.match(/Procurador(?:\(a\))?\s*:\s*([^\n]+)/i);
+    if (match) return match[1].trim().replace(/\s+/g, ' ');
+
+    match = secao.match(/Nome\s*(?:do\s+Advogado|do\s+Representante)?\s*:\s*([^\n]+)/i);
+    if (match) return match[1].trim().replace(/\s+/g, ' ');
+
     return null;
   }
   

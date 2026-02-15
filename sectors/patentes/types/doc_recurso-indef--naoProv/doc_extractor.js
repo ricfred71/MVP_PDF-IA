@@ -54,21 +54,27 @@ export class DocRecursoIndefNaoProvExtractor {
       dataDespacho: this._extrairDataDespacho(textoDocOficial),
       dataNotificacaoIndeferimento: this._extrairDataNotificacaoIndeferimento(textoDocOficial),
       nomeDecisao: nomeDecisao,
-      tipoDespacho: 'Recurso não provido',
-      form_decisao: nomeDecisao,
-      decisao: 'indeferido_mantido',
+      // ⚠️ REMOVIDO: tipoDespacho (redundante com `decisao`)
+      // ⚠️ REMOVIDO: form_decisao (cópia de `nomeDecisao`, use nomeDecisao diretamente)
+      decisao: 'indeferido_mantido',  // Código programático para processamento
 
       // Parecer
       textoParecer: textoParecer,
       tecnico: this._extrairTecnico(textoDocOficial),
 
       // Fundamentação
-      artigosInvocados: this._extrairArtigosInvocados(textoDocOficial),
-      motivoIndeferimento: this._extrairMotivoIndeferimento(textoDocOficial),
+      // ⚠️ CAMPOS NÃO UTILIZADOS (Comentados - sem utilidade identificada)
+      // artigosInvocados: this._extrairArtigosInvocados(textoDocOficial),
+      // motivoIndeferimento: this._extrairMotivoIndeferimento(textoDocOficial),
+      // Nota: Estes campos não são processados pela IA nem exibidos na UI.
+      // Se necessários no futuro, descomente e verifique compatibilidade.
 
-      // Conflitos (ainda não aplicável para este tipo)
-      anterioridades: [],
-      processosConflitantes: [],
+      // Conflitos (ainda não aplicável para patentes)
+      // ⚠️ CAMPOS VAZIOS (Não relevante para patentes, apenas marcas)
+      // anterioridades: [],
+      // processosConflitantes: [],
+      // Nota: Patentes não possuem "anterioridades" como marcas.
+      // Estes campos são mantidos vazios para compatibilidade de schema.
 
       // Metadados gerais
       textoCompleto: textoDocOficial,
@@ -83,24 +89,29 @@ export class DocRecursoIndefNaoProvExtractor {
     const listaLgpd = [
       'form_numeroProcesso',
       'form_numeroPct',
-      'form_dataDeposito',
       'form_prioridadeUnionista',
       'form_requerente_nome',
       'form_inventor_nome',
-      'form_titulo'
+      'form_titulo',
+      'dataDespacho',
+      'dataNotificacaoIndeferimento'
     ];
 
     const { textoParaIa, tokenMap } = this._tokenizarTextoParaIa(dados.textoParecer, dados, listaLgpd);
     dados.textoParaIa = this._removerTextosRepetidosTextoParaIa(textoParaIa);
+    this._salvarMapaAnonimizacao(storageKey, tokenMap);
+
+    // Auditoria pós-tokenização para detectar variantes que escaparam.
+    const vazamentosLgpd = this._auditarVazamentoLgpd(dados.textoParaIa, dados, listaLgpd);
+    if (vazamentosLgpd.length > 0) {
+      console.warn('[DocRecursoIndefNaoProvExtractor] ⚠️ Possivel vazamento LGPD detectado:', vazamentosLgpd);
+    }
     
     // Validação
     const validacao = validarDocRecursoIndefNaoProv(dados);
     
     // Storage key
     const storageKey = `doc_oficial_${numeroProcesso || 'sem_processo'}_recurso_nao_provido_patente`;
-
-    // Salva mapa de anonimização na sessão
-    this._salvarMapaAnonimizacao(storageKey, tokenMap);
     
     console.log('[DocRecursoIndefNaoProvExtractor] Extração concluída:', {
       storageKey,
@@ -170,8 +181,6 @@ export class DocRecursoIndefNaoProvExtractor {
       tokenToValue: {}
     };
 
-    const escapeRegExp = (valor) => String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
     const createToken = (tipo, valor) => {
       const valueKey = String(valor);
       if (tokenState.valueToToken.has(valueKey)) {
@@ -187,20 +196,23 @@ export class DocRecursoIndefNaoProvExtractor {
       return token;
     };
 
-    const replaceAll = (orig, valor, token) => {
-      if (valor == null || valor === '') return orig;
-      const regex = new RegExp(escapeRegExp(valor), 'g');
-      return orig.replace(regex, token);
+    // Substitui com base nas regexes flexíveis geradas por campo.
+    const replaceByRegexes = (orig, regexes, token) => {
+      return regexes.reduce((acc, regex) => acc.replace(regex, token), orig);
     };
+
+    // Estratégia por campo para lidar com separadores/abreviações.
+    const fieldToStrategy = this._getLgpdFieldStrategies();
 
     const fieldToTipo = {
       form_numeroProcesso: 'PROCESSO_PRINCIPAL',
       form_numeroPct: 'PCT',
-      form_dataDeposito: 'DATA_DEPOSITO',
       form_prioridadeUnionista: 'PRIORIDADE_UNIONISTA',
       form_requerente_nome: 'DEPOSITANTE',
       form_inventor_nome: 'INVENTOR',
-      form_titulo: 'TITULO'
+      form_titulo: 'TITULO',
+      dataDespacho: 'DATA_DESPACHO',
+      dataNotificacaoIndeferimento: 'DATA_NOTIFICACAO'
     };
 
     let textoTokenizado = texto;
@@ -211,7 +223,16 @@ export class DocRecursoIndefNaoProvExtractor {
       if (!valor) return;
       const tipo = fieldToTipo[campo] || 'DADO_LGPD';
       const token = createToken(tipo, valor);
-      textoTokenizado = replaceAll(textoTokenizado, valor, token);
+
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+      const totalMatches = this._countRegexMatches(textoTokenizado, regexes);
+      if (totalMatches === 0) {
+        console.log('[DocRecursoIndefNaoProvExtractor] LGPD sem match:', campo);
+      } else {
+        console.log('[DocRecursoIndefNaoProvExtractor] LGPD matches:', campo, totalMatches);
+      }
+      textoTokenizado = replaceByRegexes(textoTokenizado, regexes, token);
     });
 
     // 2) Tokenização de CNPJ (formato inteiro e formatado)
@@ -429,6 +450,10 @@ export class DocRecursoIndefNaoProvExtractor {
     return match2 ? match2[1] : null;
   }
 
+
+  //
+  //BR102014004206-7
+//Recurso conhecido e negado provimento. Mantido o indeferimento do pedido [código 111].
   _extrairNomeDecisao(texto) {
     const match = texto.match(/Recurso\s+conhecido\s+e\s+negado\s+provimento\.[\s\S]{0,160}?(?:\[\s*c[oó]digo\s*\d+\s*\])?/i);
     if (match) return this._limparFormatacao(match[0]);
@@ -495,32 +520,34 @@ export class DocRecursoIndefNaoProvExtractor {
     return match[0].trim();
   }
 
-  _extrairArtigosInvocados(texto) {
-    const artigos = [];
-    const regex = /\bart(?:igo)?s?\s*\.?\s*(\d+)(?:\s*,?\s*(?:inc|inciso)\s*\.?\s*([IVX]+))?\b/gi;
-    let match;
-    
-    while ((match = regex.exec(texto)) !== null) {
-      const numeroArtigo = match[1];
-      const inciso = match[2] || '';
-      
-      const artigoNormalizado = inciso 
-        ? `Art. ${numeroArtigo}, inc. ${inciso}`
-        : `Art. ${numeroArtigo}`;
-      
-      if (!artigos.includes(artigoNormalizado)) {
-        artigos.push(artigoNormalizado);
-      }
-    }
-    
-    return artigos;
-  }
+  // ⚠️ MÉTODO NÃO UTILIZADO (Campos não são extraídos nem enviados para IA)
+  // _extrairArtigosInvocados(texto) {
+  //   const artigos = [];
+  //   const regex = /\bart(?:igo)?s?\s*\.?\s*(\d+)(?:\s*,?\s*(?:inc|inciso)\s*\.?\s*([IVX]+))?\b/gi;
+  //   let match;
+  //   
+  //   while ((match = regex.exec(texto)) !== null) {
+  //     const numeroArtigo = match[1];
+  //     const inciso = match[2] || '';
+  //     
+  //     const artigoNormalizado = inciso 
+  //       ? `Art. ${numeroArtigo}, inc. ${inciso}`
+  //       : `Art. ${numeroArtigo}`;
+  //     
+  //     if (!artigos.includes(artigoNormalizado)) {
+  //       artigos.push(artigoNormalizado);
+  //     }
+  //   }
+  //   
+  //   return artigos;
+  // }
   
-  _extrairMotivoIndeferimento(texto) {
-    const match = texto.match(/indeferido\s+com\s+base\s+nos?\s+([^\.\n\r]+)[\.\n\r]/i);
-    if (!match) return null;
-    return this._limparFormatacao(match[1]) || null;
-  }
+  // ⚠️ MÉTODO NÃO UTILIZADO (Campo não é extraído nem enviado para IA)
+  // _extrairMotivoIndeferimento(texto) {
+  //   const match = texto.match(/indeferido\s+com\s+base\s+nos?\s+([^\.\n\r]+)[\.\n\r]/i);
+  //   if (!match) return null;
+  //   return this._limparFormatacao(match[1]) || null;
+  // }
 
   _extrairBlocosCabecalho(texto) {
     const indices = [];
@@ -575,43 +602,161 @@ export class DocRecursoIndefNaoProvExtractor {
     return [etapa1 || null, etapa2 || null].filter((x) => x);
   }
   
-  _extrairAnterioridades(texto) {
-    const anterioridades = [];
-    const matchSecao = texto.match(/MARCA\(S\)\s+APONTADA\(S\)\s+COMO\s+IMPEDITIVA\(S\)\s*:([\s\S]+?)(?=Ap[óo]s\s+ter\s+sido\s+examinado|$)/i);
-    
-    if (matchSecao) {
-      const secaoAnterioridades = matchSecao[1];
-      const regex = /\b(\d{9})\b/g;
-      let match;
-      
-      while ((match = regex.exec(secaoAnterioridades)) !== null) {
-        const processo = match[1];
-        if (!anterioridades.includes(processo)) {
-          anterioridades.push(processo);
-        }
-      }
-    }
-    
-    return anterioridades;
-  }
+  // ⚠️ MÉTODO NÃO UTILIZADO (Relevante apenas para marcas, não para patentes)
+  // _extrairAnterioridades(texto) {
+  //   const anterioridades = [];
+  //   const matchSecao = texto.match(/MARCA\(S\)\s+APONTADA\(S\)\s+COMO\s+IMPEDITIVA\(S\)\s*:([\s\S]+?)(?=Ap[óo]s\s+ter\s+sido\s+examinado|$)/i);
+  //   
+  //   if (matchSecao) {
+  //     const secaoAnterioridades = matchSecao[1];
+  //     const regex = /\b(\d{9})\b/g;
+  //     let match;
+  //     
+  //     while ((match = regex.exec(secaoAnterioridades)) !== null) {
+  //       const processo = match[1];
+  //       if (!anterioridades.includes(processo)) {
+  //         anterioridades.push(processo);
+  //       }
+  //     }
+  //   }
+  //   
+  //   return anterioridades;
+  // }
   
-  _extrairProcessosConflitantes(texto) {
-    const processos = [];
-    const regex = /Processo\s+(\d{9})/gi;
-    let match;
-    
-    while ((match = regex.exec(texto)) !== null) {
-      const processo = match[1];
-      if (!processos.includes(processo)) {
-        processos.push(processo);
+  // ⚠️ MÉTODO NÃO UTILIZADO (Relevante apenas para marcas, não para patentes)
+  // _extrairProcessosConflitantes(texto) {
+  //   const processos = [];
+  //   const regex = /Processo\s+(\d{9})/gi;
+  //   let match;
+  //   
+  //   while ((match = regex.exec(texto)) !== null) {
+  //     const processo = match[1];
+  //     if (!processos.includes(processo)) {
+  //       processos.push(processo);
+  //     }
+  //   }
+  //   
+  //   // Remove o processo principal (primeiro encontrado)
+  //   if (processos.length > 1) {
+  //     processos.shift();
+  //   }
+  //   
+  //   return processos;
+  // }
+
+  // Reaplica as regexes da tokenização para garantir ausência de vazamentos.
+  _auditarVazamentoLgpd(textoParaIa, dados, listaLgpd) {
+    if (!textoParaIa) return [];
+    const fieldToStrategy = this._getLgpdFieldStrategies();
+    const vazamentos = [];
+
+    listaLgpd.forEach((campo) => {
+      const valor = dados[campo];
+      if (!valor) return;
+
+      const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
+      if (!regexes.length) return;
+
+      const totalMatches = this._countRegexMatches(textoParaIa, regexes);
+      const encontrou = totalMatches > 0;
+      regexes.forEach((regex) => {
+        if (regex.global) regex.lastIndex = 0;
+      });
+
+      if (encontrou) {
+        console.log('[DocRecursoIndefNaoProvExtractor] LGPD vazamento match:', campo, totalMatches);
+        vazamentos.push(campo);
       }
+    });
+
+    return vazamentos;
+  }
+
+  // Define a estratégia de matching por campo LGPD.
+  _getLgpdFieldStrategies() {
+    return {
+      form_numeroProcesso: 'digits',
+      form_numeroPct: 'alnum',
+      form_prioridadeUnionista: 'digits',
+      form_requerente_nome: 'text',
+      form_inventor_nome: 'text',
+      form_titulo: 'text',
+      dataDespacho: 'digits',
+      dataNotificacaoIndeferimento: 'digits'
+    };
+  }
+
+  // Gera regexes (literal + variantes) a partir do valor extraído.
+  _getLgpdRegexesForField(campo, valor, fieldToStrategy) {
+    if (!valor) return [];
+
+    const literalRegex = new RegExp(this._escapeRegExp(valor), 'g');
+    const regexes = [literalRegex];
+    const estrategia = fieldToStrategy[campo];
+    if (!estrategia) return regexes;
+
+    const digits = String(valor).replace(/\D/g, '');
+
+    if (estrategia === 'digits') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+    } else if (estrategia === 'alnum') {
+      const alnumRegex = this._buildFlexibleAlnumRegex(valor);
+      if (alnumRegex) regexes.push(alnumRegex);
+    } else if (estrategia === 'text') {
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
+    } else if (estrategia === 'mixed') {
+      const digitsRegex = this._buildFlexibleDigitsRegex(digits);
+      if (digitsRegex) regexes.push(digitsRegex);
+      const textRegex = this._buildFlexibleTextRegex(valor);
+      if (textRegex) regexes.push(textRegex);
     }
-    
-    // Remove o processo principal (primeiro encontrado)
-    if (processos.length > 1) {
-      processos.shift();
-    }
-    
-    return processos;
+
+    return regexes;
+  }
+
+  _buildFlexibleDigitsRegex(digits) {
+    if (!digits) return null;
+    const pattern = digits.split('').join('[\\s./-]*');
+    return new RegExp(`\\b${pattern}\\b`, 'g');
+  }
+
+  _buildFlexibleAlnumRegex(value) {
+    const compact = String(value).replace(/[^0-9A-Za-z]/g, '');
+    if (!compact) return null;
+    const pattern = compact.split('').map((char) => this._escapeRegExp(char)).join('[\\s./-]*');
+    return new RegExp(pattern, 'gi');
+  }
+
+  _buildFlexibleTextRegex(value) {
+    const tokens = String(value)
+      .replace(/[.,;:/-]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => this._escapeRegExp(token));
+    if (!tokens.length) return null;
+    const separator = '[\\s./,-]+';
+    return new RegExp(tokens.join(separator), 'gi');
+  }
+
+  _escapeRegExp(valor) {
+    return String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  _countRegexMatches(texto, regexes) {
+    let total = 0;
+    regexes.forEach((regex) => {
+      if (!regex) return;
+      const flags = regex.flags.includes('g') ? regex.flags : `${regex.flags}g`;
+      const cloned = new RegExp(regex.source, flags);
+      let match;
+      while ((match = cloned.exec(texto)) !== null) {
+        total += 1;
+        if (match.index === cloned.lastIndex) cloned.lastIndex += 1;
+      }
+    });
+    return total;
   }
 }
