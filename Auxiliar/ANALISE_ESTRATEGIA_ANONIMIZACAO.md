@@ -1,7 +1,7 @@
 # Estratégia de Anonimização LGPD - Status de Implementação
 
 **Data de criação**: 01/02/2026  
-**Última atualização**: 15/02/2026 (Advanced LGPD anonimization completa em todos 4 extractors)  
+**Última atualização**: 16/02/2026 (Documentação de Termos Customizados LGPD + Correção de Tooltips)  
 **Contexto**: Extensão IPAS - Anonimização de documentos para envio a IAs gratuitas  
 **Conformidade**: LGPD (Lei Geral de Proteção de Dados, lei 13.709/2018).
 
@@ -59,6 +59,197 @@ Regex para capturar padrões comuns não mapeados explicitamente:
 - Remove texto que se repete em múltiplas páginas
 - Detecta padrões: "Página X de Y", dados de contato INPI, etc.
 - Reduz ruído e tamanho do texto para IA
+
+### ✅ 5. Termos Customizados LGPD (Entrada do Usuário)
+
+**Objetivo**: Permitir que o usuário inclua termos/expressões adicionais que devem ser anonimizados além da lista padrão.
+
+#### 🎯 Funcionalidade Implementada
+
+**Interface de Usuário**:
+- **Localização**: Painel "Termos adicionais para LGPD" (aparece após clicar botão "3 - Proteção LGPD")
+- **Campo de entrada**: Input de texto com placeholder "Termo/expressão"
+- **Limite**: Máximo 120 caracteres por termo
+- **Botão "Adicionar"**: Adiciona o termo à lista (suporta tecla Enter)
+
+**Visualização de Termos**:
+- Termos exibidos como "chips" removíveis
+- Estado vazio: mensagem "Nenhum termo extra configurado."
+- Cada termo pode ser removido via botão "X" no chip
+
+**Persistência**:
+- Termos salvos em `chrome.storage.local` sob a chave `lgpdCustomTerms`
+- Persiste across sessions até limpeza manual
+- Limpeza automática ao selecionar novo PDF
+
+#### 📋 Fluxo de Uso
+
+1. **Usuário seleciona PDF e processa** (etapa 1-2)
+2. **Clica botão "3 - Proteção LGPD"** (panel aparece com input customizado)
+3. **Digita termos/expressões** adicionais a anonimizar (ex: "empresa ABC", "CNJ", "cláusula especial")
+4. **Clica "Adicionar" ou pressiona Enter**
+   - Termo é validado (normalizado, deduplica-se)
+   - Adicionado à lista como chip removível
+   - Salvo em `chrome.storage.local`
+5. **Clica novamente botão "3 - Proteção LGPD"** para regenerar
+   - Extractor recebe `options.lgpdCustomTerms = [...]`
+   - Termos customizados são mesclados à `listaLgpd`
+   - Tokenização aplicada com nomes de campo `lgpd_custom_1`, `lgpd_custom_2`, etc.
+   - `textoParaIa` regenerado com novos tokens
+   - Mapa de tokens atualizado em storage
+
+#### 🔧 Implementação Técnica
+
+**Em `ui/upload/upload.js`**:
+```javascript
+// Estado global
+let lgpdCustomTerms = [];
+
+// Funções principais
+normalizarTexto(valor)                    // Normaliza: trim + espaços
+carregarTermosLgpdCustomizados()          // Carrega de chrome.storage.local
+salvarTermosLgpdCustomizados()            // Salva para chrome.storage.local
+adicionarTermoLgpdCustomizado(termo)      // Valida + deduplica + renderiza
+removerTermoLgpdCustomizado(index)        // Remove e salva
+limparTermosLgpdCustomizados()            // Limpa array e storage
+renderizarTermosLgpd()                    // Renderiza lista visual de chips
+```
+
+**Em extractors** (`pet_extractor.js` / `doc_extractor.js`):
+```javascript
+// Normalizadores
+_normalizarTermosLgpdCustomizados(customTerms)  // Dedup + trim
+_aplicarTermosLgpdCustomizados(dados, listaLgpd, customTerms)
+  // Mescla custom terms em listaLgpd com nomes lgpd_custom_N
+  // Ex: customTerms = ["empresa ABC", "CNJ"]
+  //     listaLgpd += {
+  //       lgpd_custom_1: "empresa ABC",
+  //       lgpd_custom_2: "CNJ"
+  //     }
+
+// Tokenização com suporte a custom fields
+// Reconhece `lgpd_custom_*` e aplica tipo TERM_LGPD + strategy "mixed"
+```
+
+**Storage Schema**:
+```javascript
+// chrome.storage.local
+{
+  "lgpdCustomTerms": [
+    "empresa ABC",
+    "CNJ",
+    "cláusula especial",
+    "disposição normativa X"
+  ]
+}
+```
+
+#### 🔐 Validação e Deduplicação
+
+**Ao adicionar termo**:
+1. Normaliza: `"  Empresa ABC  "` → `"Empresa ABC"`
+2. Valida comprimento: max 120 chars
+3. Deduplica case-insensitive: `"empresa abc"` ↔ `"EMPRESA ABC"` → mesmo termo
+4. Rejeita duplicatas: não adiciona se já existe na lista
+5. Renderiza novo chip com botão remover
+
+**Feedback ao usuário**:
+- Termo adicionado: chip aparece imediatamente
+- Termo duplicado: silenciosamente ignorado (sem erro visível)
+- Campo limpo após adição bem-sucedida
+
+#### 🚀 Fluxo de Regeneração LGPD
+
+```
+┌─────────────────────────────────────────┐
+│ Usuário adiciona termo customizado      │
+│ Ex: "empresa ABC"                       │
+│ Estado: lgpdCustomTerms = ["empresa ABC"]
+└────────────┬────────────────────────────┘
+             │
+      ✅ Salva em chrome.storage.local
+             │
+┌─────────────────────────────────────────┐
+│ Usuário clica "3 - Proteção LGPD" novamente
+└────────────┬────────────────────────────┘
+             │
+  ✅ upload.js recupera lgpdCustomTerms
+     Recria classificação object
+     Chama extractor com options
+             │
+┌─────────────────────────────────────────┐
+│ Extractor recebe options.lgpdCustomTerms│
+│  - Normaliza termos                     │
+│  - Mescla em listaLgpd                  │
+│  - Aplica tokenização                   │
+│    lgpd_custom_1 → [TERMO_LGPD_1]      │
+└────────────┬────────────────────────────┘
+             │
+  ✅ textoParaIa regenerado
+     Mapa de tokens atualizado
+     Storage atualizado
+             │
+┌─────────────────────────────────────────┐
+│ Usuário vê novo texto anonimizado       │
+│ Com novos tokens: [TERMO_LGPD_1], etc.  │
+└─────────────────────────────────────────┘
+```
+
+#### 📊 Exemplo Real
+
+**Entrada do usuário**:
+```
+Termos adicionais para anonimizar:
+- "Tribunal de Justiça"
+- "CNJ"
+- "Ministério Público"
+```
+
+**Antes** (texto original):
+```
+"... em recurso ao Tribunal de Justiça, conforme CNJ 
+Processo XYZ. O Ministério Público manifestou-se..."
+```
+
+**Após Tokenização LGPD com Termos Customizados**:
+```
+"... em recurso ao [TERMO_LGPD_1], conforme [TERMO_LGPD_2] 
+Processo [PROCESSO_1]. O [TERMO_LGPD_3] manifestou-se..."
+```
+
+**Mapa de Tokens** (armazenado em session storage):
+```javascript
+{
+  "[TERMO_LGPD_1]": "Tribunal de Justiça",
+  "[TERMO_LGPD_2]": "CNJ",
+  "[TERMO_LGPD_3]": "Ministério Público",
+  "[PROCESSO_1]": "123456789",
+  ...
+}
+```
+
+#### ⚠️ Limitações Atuais
+
+1. **Tokenização simples**: Substituição de texto literal (case-insensitive, sem regex flexível)
+   - Variante: "Tribunal de Justiça" vs "Tribunal/de/Justiça" podem não ser detectadas
+   - Solução futura: Implementar regex flexível por campo customizado
+
+2. **Sem deduplicação automática**: Se termo customizado sobrepõe campo LGPD padrão
+   - Ex: "João Silva" tanto em `form_requerente_nome` quanto em termo customizado
+   - Solução: Pode resultar em multipla tokenização (aceitável por enquanto)
+
+3. **Sem validação de semantântica**: Usuário pode adicionar termos muito genéricos
+   - Ex: "o", "de", "que" → resultariam em over-tokenization
+   - Solução futura: Validação de comprimento mínimo + aviso ao usuário
+
+#### 🔜 Roadmap Futuro
+
+- [ ] Regex flexível para termos customizados (digits, alnum, text)
+- [ ] Validação semântica (mínimo 2-3 palavras ou 10 caracteres)
+- [ ] Detecção de variantes (plurais, acentuação)
+- [ ] Histórico de termos usados (autocomplete)
+- [ ] Sincronização entre abas (shared chrome.storage)
+- [ ] Export/Import de listas de termos customizados
 
 ---
 
@@ -1042,6 +1233,6 @@ Questões:
 
 ---
 
-**Documento Atualizado**: 15/02/2026  
-**Status**: ✅ Funcionalidades Avançadas Implementadas em **Marcas > Petição** + **Patentes > Petição (NOVO)** | ⚠️ Expansão Pendente para Outros 2 Tipos de Documentos Oficiais  
-**Versão**: 2.1 - Refletindo Implementação Real com Expansão para Patentes
+**Documento Atualizado**: 16/02/2026  
+**Status**: ✅ Funcionalidades Avançadas Implementadas em **Marcas > Petição** + **Patentes > Petição** | ✅ Termos Customizados LGPD (UI + Integração) | ⚠️ Expansão Pendente para Outros 2 Tipos de Documentos Oficiais  
+**Versão**: 2.2 - Refletindo Implementação Real com Termos Customizados do Usuário

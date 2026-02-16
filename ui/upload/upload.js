@@ -24,10 +24,15 @@ const progress = document.getElementById('progress');
 const progressText = document.getElementById('progressText');
 const progressFill = document.getElementById('progressFill');
 const lgpdBtn = document.getElementById('lgpdBtn');
+const lgpdCustom = document.getElementById('lgpdCustom');
 const lgpdResult = document.getElementById('lgpdResult');
 const lgpdText = document.getElementById('lgpdText');
 const lgpdCopyBtn = document.getElementById('lgpdCopyBtn');
 const openAiBtn = document.getElementById('openAiBtn');
+const lgpdTermValue = document.getElementById('lgpdTermValue');
+const lgpdTermAddBtn = document.getElementById('lgpdTermAddBtn');
+const lgpdTermList = document.getElementById('lgpdTermList');
+const lgpdTermEmpty = document.getElementById('lgpdTermEmpty');
 
 // ============================================
 // ESTADO GLOBAL
@@ -35,6 +40,7 @@ const openAiBtn = document.getElementById('openAiBtn');
 let selectedFile = null;
 let currentSessionId = null;
 let lastStorageKey = null;
+let lgpdCustomTerms = [];
 
 // ============================================
 // VALIDAÇÃO DE ARQUIVO
@@ -111,7 +117,120 @@ function limparInterface() {
   openAiBtn.disabled = true;
   lgpdResult.style.display = 'none';
   lgpdText.value = '';
+  if (lgpdCustom) lgpdCustom.classList.add('hidden');
   esconderProgresso();
+}
+
+async function limparTermosLgpdCustomizados() {
+  lgpdCustomTerms = [];
+  renderizarTermosLgpd();
+  if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
+  await chrome.storage.local.set({ lgpdCustomTerms: [] });
+}
+
+function normalizarTexto(valor) {
+  return String(valor || '').trim().replace(/\s+/g, ' ');
+}
+
+function renderizarTermosLgpd() {
+  if (!lgpdTermList || !lgpdTermEmpty) return;
+
+  lgpdTermList.innerHTML = '';
+
+  if (!lgpdCustomTerms.length) {
+    lgpdTermEmpty.style.display = 'block';
+    return;
+  }
+
+  lgpdTermEmpty.style.display = 'none';
+
+  lgpdCustomTerms.forEach((item, index) => {
+    const chip = document.createElement('div');
+    chip.className = 'lgpd-term-chip';
+
+    const label = document.createElement('span');
+    const prefixo = item.descricao ? `${item.descricao}: ` : '';
+    label.textContent = `${prefixo}${item.termo}`;
+
+    const remover = document.createElement('button');
+    remover.type = 'button';
+    remover.className = 'lgpd-term-remove';
+    remover.textContent = '×';
+    remover.addEventListener('click', () => removerTermoLgpdCustomizado(index));
+
+    chip.appendChild(label);
+    chip.appendChild(remover);
+    lgpdTermList.appendChild(chip);
+  });
+}
+
+function normalizarListaTermos(lista) {
+  if (!Array.isArray(lista)) return [];
+  const vistos = new Set();
+
+  return lista
+    .map((item) => {
+      if (typeof item === 'string') {
+        const termo = normalizarTexto(item);
+        return termo ? { descricao: '', termo } : null;
+      }
+
+      if (!item || typeof item !== 'object') return null;
+
+      const termo = normalizarTexto(item.termo || item.valor || '');
+      if (!termo) return null;
+
+      const descricao = normalizarTexto(item.descricao || item.desc || '');
+      return { descricao, termo };
+    })
+    .filter(Boolean)
+    .filter((item) => {
+      const chave = item.termo.toLowerCase();
+      if (vistos.has(chave)) return false;
+      vistos.add(chave);
+      return true;
+    });
+}
+
+async function carregarTermosLgpdCustomizados() {
+  if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
+
+  const resultado = await chrome.storage.local.get('lgpdCustomTerms');
+  lgpdCustomTerms = normalizarListaTermos(resultado?.lgpdCustomTerms || []);
+  renderizarTermosLgpd();
+}
+
+async function salvarTermosLgpdCustomizados() {
+  if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
+  await chrome.storage.local.set({ lgpdCustomTerms });
+}
+
+async function adicionarTermoLgpdCustomizado() {
+  const termo = normalizarTexto(lgpdTermValue?.value || '');
+  if (!termo) {
+    mostrarStatus('❌ Informe um termo/expressao para LGPD', 'error');
+    return;
+  }
+
+  const jaExiste = lgpdCustomTerms.some((item) => item.termo.toLowerCase() === termo.toLowerCase());
+  if (jaExiste) {
+    mostrarStatus('⚠️ Termo LGPD ja cadastrado', 'info');
+    return;
+  }
+
+  lgpdCustomTerms.push({ descricao: '', termo });
+  await salvarTermosLgpdCustomizados();
+  renderizarTermosLgpd();
+
+  if (lgpdTermValue) lgpdTermValue.value = '';
+  mostrarStatus('✅ Termo LGPD adicionado', 'success');
+}
+
+async function removerTermoLgpdCustomizado(index) {
+  if (index < 0 || index >= lgpdCustomTerms.length) return;
+  lgpdCustomTerms.splice(index, 1);
+  await salvarTermosLgpdCustomizados();
+  renderizarTermosLgpd();
 }
 
 // ============================================
@@ -141,6 +260,9 @@ pdfInput.addEventListener('change', (e) => {
   openAiBtn.disabled = true;
   lgpdResult.style.display = 'none';
   lgpdText.value = '';
+  limparTermosLgpdCustomizados();
+  if (lgpdCustom) lgpdCustom.classList.add('hidden');
+  if (lgpdCustom) lgpdCustom.classList.add('hidden');
   
   // Atualizar UI
   fileName.textContent = `📄 ${file.name}`;
@@ -155,6 +277,19 @@ pdfInput.addEventListener('change', (e) => {
     tipo: file.type
   });
 });
+
+if (lgpdTermAddBtn) {
+  lgpdTermAddBtn.addEventListener('click', adicionarTermoLgpdCustomizado);
+}
+
+if (lgpdTermValue) {
+  lgpdTermValue.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      adicionarTermoLgpdCustomizado();
+    }
+  });
+}
 
 // ============================================
 // EVENTO: PROCESSAR PDF
@@ -228,12 +363,15 @@ processBtn.addEventListener('click', async () => {
 
     console.log('[Upload] Setor detectado:', sector);
 
+    const extractorOptions = { lgpdCustomTerms: lgpdCustomTerms.slice() };
+
     if (classificacao.categoriaId === 'peticao') {
       // Extrai dados de PETIÇÃO
       const extractResult = extractor.extrairDadosPeticao(
         resultado.texto,
         classificacao,
-        '' // urlPdf - pode ser preenchido se disponível
+        '', // urlPdf - pode ser preenchido se disponível
+        extractorOptions
       );
       dadosExtraidos = extractResult.dados;
       storageKey = extractResult.storageKey;
@@ -252,7 +390,8 @@ processBtn.addEventListener('click', async () => {
       const extractResult = extractor.extrairDadosDocumentoOficial(
         resultado.texto,
         classificacao,
-        '' // urlPdf
+        '', // urlPdf
+        extractorOptions
       );
       dadosExtraidos = extractResult.dados;
       storageKey = extractResult.storageKey;
@@ -301,6 +440,7 @@ processBtn.addEventListener('click', async () => {
     lastStorageKey = storageKey;
     lgpdBtn.disabled = false;
     openAiBtn.disabled = false;
+    if (lgpdCustom) lgpdCustom.classList.remove('hidden');
     
     // ========================================
     // ETAPA 5: Concluído
@@ -385,16 +525,65 @@ lgpdBtn.addEventListener('click', async () => {
   try {
     const resultado = await chrome.storage.local.get(lastStorageKey);
     const dados = resultado?.[lastStorageKey];
-    const textoParaIa = dados?.textoParaIa || '';
 
-    if (!textoParaIa) {
+    if (!dados) {
+      mostrarStatus('❌ Dados não encontrados para este documento', 'error');
+      return;
+    }
+
+    const textoBase = dados.textoPeticao || dados.textoCompleto || dados.texto || '';
+    const categoria = dados.categoria || '';
+
+    if (!textoBase) {
+      mostrarStatus('⚠️ Texto original não disponível para LGPD', 'info');
+      lgpdResult.style.display = 'none';
+      lgpdText.value = '';
+      return;
+    }
+
+    const classificacao = {
+      categoriaId: categoria,
+      tipoId: dados.tipo || '',
+      subtipoId: dados.subtipo || '',
+      confianca: dados.confianca || 0
+    };
+
+    const extractorInfo = getExtractorForTexto(textoBase, {
+      sector: dados.setor || detectSector(textoBase, {})
+    });
+
+    const extractor = extractorInfo.extractor;
+    const extractorOptions = {
+      lgpdCustomTerms: lgpdCustomTerms.slice(),
+      overrideStorageKey: lastStorageKey
+    };
+
+    let novoResultado = null;
+
+    if (categoria === 'peticao') {
+      novoResultado = extractor.extrairDadosPeticao(textoBase, classificacao, dados.urlPdf || '', extractorOptions);
+    } else if (categoria === 'documento_oficial') {
+      novoResultado = extractor.extrairDadosDocumentoOficial(textoBase, classificacao, dados.urlPdf || '', extractorOptions);
+    } else {
+      mostrarStatus('⚠️ Categoria não suportada para LGPD', 'info');
+      return;
+    }
+
+    if (!novoResultado?.dados?.textoParaIa) {
       mostrarStatus('⚠️ Texto LGPD não encontrado neste documento', 'info');
       lgpdResult.style.display = 'none';
       lgpdText.value = '';
       return;
     }
 
-    lgpdText.value = textoParaIa;
+    await chrome.storage.local.set({
+      [lastStorageKey]: {
+        ...dados,
+        ...novoResultado.dados
+      }
+    });
+
+    lgpdText.value = novoResultado.dados.textoParaIa;
     lgpdResult.style.display = 'block';
   } catch (error) {
     console.warn('[Upload] Erro ao carregar texto LGPD:', error);
@@ -491,9 +680,85 @@ function formatarTipoDocumento(tipoId) {
 console.log('[Upload] Interface carregada - IA Análise Jurídica v1.0.0');
 console.log('[Upload] Aguardando upload de PDF...');
 
+// ============================================
+// DEBUG TOOLTIPS
+// ============================================
+function debugTooltips() {
+  console.log('=== TOOLTIP DEBUG ===');
+  
+  const allTooltips = document.querySelectorAll('[data-tooltip]');
+  console.log(`Total elementos com data-tooltip: ${allTooltips.length}`);
+  
+  allTooltips.forEach((el, index) => {
+    const computed = window.getComputedStyle(el);
+    const tooltip = el.getAttribute('data-tooltip');
+    const rect = el.getBoundingClientRect();
+    
+    // Verificar se elemento está visível
+    let isVisible = el.offsetParent !== null;
+    
+    // Verificar se está dentro de container oculto
+    let parent = el.parentElement;
+    let hiddenParent = null;
+    while (parent) {
+      if (parent.classList.contains('hidden') || window.getComputedStyle(parent).display === 'none') {
+        hiddenParent = parent.className || parent.tagName;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+    
+    // Verificar hierarquia de pais com estilos importantes
+    let parentInfo = [];
+    parent = el.parentElement;
+    let level = 0;
+    while (parent && level < 6) {
+      const parentComputed = window.getComputedStyle(parent);
+      if (parentComputed.overflow !== 'visible' || parentComputed.zIndex !== 'auto') {
+        parentInfo.push(`${parent.tagName}.${parent.className.split(' ')[0] || ''} (overflow: ${parentComputed.overflow}, z-index: ${parentComputed.zIndex})`);
+      }
+      level++;
+      parent = parent.parentElement;
+    }
+    
+    console.log(`
+[Tooltip ${index + 1}]
+  - ID: ${el.id}
+  - Classe: ${el.className}
+  - Tooltip: "${tooltip}"
+  - Desabilitado: ${el.disabled}
+  - Visível na página: ${isVisible}
+  - Dentro de .hidden: ${hiddenParent ? 'SIM - ' + hiddenParent : 'NÃO'}
+  - Rect: top=${rect.top.toFixed(0)}, left=${rect.left.toFixed(0)}, width=${rect.width.toFixed(0)}, height=${rect.height.toFixed(0)}
+  - Position: ${computed.position}
+  - Overflow: ${computed.overflow}
+  - Z-index: ${computed.zIndex}
+  - Display: ${computed.display}
+  - Visibility: ${computed.visibility}
+  - Opacity: ${computed.opacity}
+  - Parents com overflow/z-index: ${parentInfo.length ? parentInfo.join(' | ') : 'nenhum relevante'}
+    `);
+    
+    // Add hover listener para debug
+    el.addEventListener('mouseenter', () => {
+      console.log(`[HOVER]  ${el.id} - Tooltip: "${tooltip}"`);
+    });
+  });
+  
+  console.log('=== FIM DEBUG ===');
+}
+
+// Executar debug após DOM estar carregado
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    debugTooltips();
+  }, 500);
+});
+
 // Teste de integração ao carregar
 (async () => {
   try {
+    await carregarTermosLgpdCustomizados();
     // Testa se service worker está ativo
     const response = await chrome.runtime.sendMessage({ type: 'PING' });
     console.log('[Upload] Service Worker status:', response);

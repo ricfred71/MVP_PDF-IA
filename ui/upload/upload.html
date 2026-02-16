@@ -34,10 +34,9 @@
           <h1>Extensão Para Análise de PDFs com IA e proteção LGPD </h1>
           <p class="subtitle">Marcas e Patentes · INPI</p>
         </div>
-      </div>
-      
-      <div class="header-decoration">
-        <div class="star"></div>
+      <a href="../../help/guia-usuario.html" target="_blank" class="help-link" title="Abrir guia do usuário">
+        <span class="help-icon">❓</span>
+      </a>
         <div class="star"></div>
         <div class="star"></div>
         <div class="star"></div>
@@ -67,7 +66,7 @@
           </div>
 
           <input type="file" id="pdfInput" accept=".pdf" class="file-input" />
-          <label for="pdfInput" class="file-label">
+          <label for="pdfInput" class="file-label" data-tooltip="Selecione o arquivo PDF">
             <span class="label-text">1 - Escolher PDF</span>
             <span class="label-icon">📄</span>
           </label>
@@ -84,7 +83,7 @@
 
       <!-- Action button -->
       <section class="action-section">
-        <button id="processBtn" class="process-btn" disabled>
+        <button id="processBtn" class="process-btn" disabled data-tooltip="Extrai texto, classifica e salva os dados">
           <span class="btn-icon">⚡</span>
           <span class="btn-text">2 - Processar e Analisar</span>
           <span class="btn-decoration"></span>
@@ -93,15 +92,29 @@
 
       <!-- LGPD preview button -->
       <section class="lgpd-section">
-        <button id="lgpdBtn" class="lgpd-btn" disabled>
+        <button id="lgpdBtn" class="lgpd-btn" disabled data-tooltip="Gera o texto anonimo para IA">
           <span class="btn-icon">🔒</span>
           <span class="btn-text">3 - Proteção LGPD</span>
         </button>
 
+        <div id="lgpdCustom" class="lgpd-custom hidden">
+          <div class="lgpd-custom-header">
+            <span>Termos adicionais para LGPD</span>
+            <button id="lgpdTermAddBtn" class="lgpd-term-add-btn" type="button" data-tooltip="Inclui o termo na lista">Adicionar</button>
+          </div>
+
+          <div class="lgpd-custom-inputs">
+            <input id="lgpdTermValue" class="lgpd-term-input" type="text" placeholder="Termo/expressao" maxlength="120" data-tooltip="Digite o termo a ser anonimizado" />
+          </div>
+
+          <div id="lgpdTermList" class="lgpd-term-list"></div>
+          <div id="lgpdTermEmpty" class="lgpd-term-empty">Nenhum termo extra configurado.</div>
+        </div>
+
         <div id="lgpdResult" class="lgpd-result" style="display:none">
           <div class="lgpd-result-header">
             <span>Texto para IA (anonimizado)</span>
-            <button id="lgpdCopyBtn" class="lgpd-copy-btn">Copiar</button>
+            <button id="lgpdCopyBtn" class="lgpd-copy-btn" data-tooltip="Copia o texto anonimo">Copiar</button>
           </div>
           <textarea id="lgpdText" class="lgpd-text" readonly></textarea>
         </div>
@@ -109,7 +122,7 @@
 
       <!-- Open AI tabs -->
       <section class="ai-section">
-        <button id="openAiBtn" class="ai-btn" disabled>
+        <button id="openAiBtn" class="ai-btn" disabled data-tooltip="Abre as IAs e preenche o prompt">
           <span class="btn-icon">🤖</span>
           <span class="btn-text">4 - Abrir IAs (preencher prompt)</span>
         </button>

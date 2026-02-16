@@ -21,7 +21,7 @@ class DataExtractor {
    * @param {string} urlPdf - URL do PDF
    * @returns {Object} - Objeto estruturado para salvar no storage
    */
-  extrairDadosPeticao(textoCompleto, classificacao, urlPdf = '') {
+  extrairDadosPeticao(textoCompleto, classificacao, urlPdf = '', options = {}) {
     console.log('[DataExtractor] Extraindo dados de PETIÇÃO...');
     
     // ========================================
@@ -36,7 +36,7 @@ class DataExtractor {
     
       if (extractorEspecifico) {
         console.log(`[DataExtractor] ✅ Usando extractor específico para tipo: ${classificacao.tipoId}`);
-        return extractorEspecifico.extract(textoCompleto, classificacao, urlPdf);
+        return extractorEspecifico.extract(textoCompleto, classificacao, urlPdf, options);
       }
     
       console.log(`[DataExtractor] ℹ️ Tipo sem extractor específico: ${classificacao.tipoId}. Usando fallback genérico.`);
@@ -93,7 +93,7 @@ class DataExtractor {
    * @param {string} urlPdf - URL do PDF
    * @returns {Object} - Objeto estruturado para salvar no storage
    */
-  extrairDadosDocumentoOficial(textoCompleto, classificacao, urlPdf = '') {
+  extrairDadosDocumentoOficial(textoCompleto, classificacao, urlPdf = '', options = {}) {
     console.log('[DataExtractor] Extraindo dados de DOCUMENTO OFICIAL...');
 
     // ========================================
@@ -108,7 +108,7 @@ class DataExtractor {
 
       if (extractorEspecifico) {
         console.log(`[DataExtractor] ✅ Usando extractor específico para tipo: ${classificacao.tipoId}`);
-        return extractorEspecifico.extract(textoCompleto, classificacao, urlPdf);
+        return extractorEspecifico.extract(textoCompleto, classificacao, urlPdf, options);
       }
 
       console.log(`[DataExtractor] ℹ️ Tipo sem extractor específico: ${classificacao.tipoId}. Usando fallback genérico.`);

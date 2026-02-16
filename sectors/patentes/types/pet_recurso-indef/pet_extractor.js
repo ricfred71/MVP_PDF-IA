@@ -19,7 +19,7 @@ export class RecursoIndefExtractor {
    * @param {string} urlPdf - URL do PDF
    * @returns {Object} { storageKey, dados, validacao }
    */
-  extract(textoCompleto, classificacao, urlPdf = '') {
+  extract(textoCompleto, classificacao, urlPdf = '', options = {}) {
     console.log('[RecursoIndefExtractor] Extraindo dados do Recurso contra Indeferimento...');
     
     // Primeira página (dados estruturais geralmente aqui)
@@ -71,7 +71,8 @@ export class RecursoIndefExtractor {
     // ========================================
     // MONTA OBJETO FINAL
     // ========================================
-    const storageKey = `peticao_${peticao.numeroProcesso}_${sanitizeFilename('recurso_indef')}_${peticao.numeroPeticao}`;
+    const storageKey = options?.overrideStorageKey
+      || `peticao_${peticao.numeroProcesso}_${sanitizeFilename('recurso_indef')}_${peticao.numeroPeticao}`;
     
     const objetoFinal = {
       // Metadados de classificação
@@ -141,6 +142,8 @@ export class RecursoIndefExtractor {
       'form_procurador_escritorio_cnpj'
     ];
 
+    this._aplicarTermosLgpdCustomizados(objetoFinal, listaLgpd, options?.lgpdCustomTerms);
+
     const { textoParaIa, tokenMap } = this._tokenizarTextoParaIa(textoPeticaoLimpo, objetoFinal, listaLgpd);
     objetoFinal.textoParaIa = this._removerTextosRepetidosTextoParaIa(textoParaIa);
     this._salvarMapaAnonimizacao(storageKey, tokenMap);
@@ -193,6 +196,43 @@ export class RecursoIndefExtractor {
     } catch (error) {
       console.warn('[RecursoIndefExtractor] Erro ao salvar mapa LGPD:', error);
     }
+  }
+
+  _normalizarTermosLgpdCustomizados(customTerms) {
+    if (!Array.isArray(customTerms)) return [];
+    const vistos = new Set();
+
+    return customTerms
+      .map((item) => {
+        if (typeof item === 'string') {
+          const termo = String(item).trim();
+          return termo ? { descricao: '', termo } : null;
+        }
+
+        if (!item || typeof item !== 'object') return null;
+        const termo = String(item.termo || item.valor || '').trim();
+        if (!termo) return null;
+        const descricao = String(item.descricao || item.desc || '').trim();
+        return { descricao, termo };
+      })
+      .filter(Boolean)
+      .filter((item) => {
+        const chave = item.termo.toLowerCase();
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      });
+  }
+
+  _aplicarTermosLgpdCustomizados(dados, listaLgpd, customTerms) {
+    const termos = this._normalizarTermosLgpdCustomizados(customTerms);
+    if (!termos.length) return;
+
+    termos.forEach((item, index) => {
+      const campo = `lgpd_custom_${index + 1}`;
+      dados[campo] = item.termo;
+      listaLgpd.push(campo);
+    });
   }
 
   _tokenizarTextoParaIa(texto, dados, listaLgpd) {
@@ -255,7 +295,7 @@ export class RecursoIndefExtractor {
     listaLgpd.forEach((campo) => {
       const valor = dados[campo];
       if (!valor) return;
-      const tipo = fieldToTipo[campo] || 'DADO_LGPD';
+      const tipo = fieldToTipo[campo] || (campo.startsWith('lgpd_custom_') ? 'TERM_LGPD' : 'DADO_LGPD');
       const token = createToken(tipo, valor);
 
       const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
@@ -349,7 +389,7 @@ export class RecursoIndefExtractor {
 
     const literalRegex = new RegExp(this._escapeRegExp(valor), 'g');
     const regexes = [literalRegex];
-    const estrategia = fieldToStrategy[campo];
+    const estrategia = fieldToStrategy[campo] || (campo.startsWith('lgpd_custom_') ? 'mixed' : undefined);
     if (!estrategia) return regexes;
 
     const digits = String(valor).replace(/\D/g, '');

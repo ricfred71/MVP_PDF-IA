@@ -19,7 +19,7 @@ export class DocRecursoIndefNaoProvExtractor {
    * @param {string} urlPdf - URL do PDF
    * @returns {Object} { storageKey, dados, validacao }
    */
-  extract(textoCompleto, classificacao, urlPdf = '') {
+  extract(textoCompleto, classificacao, urlPdf = '', options = {}) {
     console.log('[DocRecursoIndefNaoProvExtractor] Extraindo dados do documento pdf.read.js - tudo que tem dentro do pdf...');
 
     const textoDocOficial = textoCompleto;
@@ -91,6 +91,8 @@ export class DocRecursoIndefNaoProvExtractor {
       'processosConflitantes'
     ];
 
+    this._aplicarTermosLgpdCustomizados(dados, listaLgpd, options?.lgpdCustomTerms);
+
     const textoParecerLimpo = this._removerCabecalhosRodapes(dados.textoParecer || '');
     const { textoParaIa, tokenMap } = this._tokenizarTextoParaIa(textoParecerLimpo, dados, listaLgpd);
     dados.textoParaIa = this._removerTextosRepetidosTextoParaIa(textoParaIa);
@@ -99,7 +101,8 @@ export class DocRecursoIndefNaoProvExtractor {
     const validacao = validarDocRecursoIndefNaoProv(dados);
     
     // Storage key
-    const storageKey = `doc_oficial_${numeroProcesso}_recurso_nao_provido`;
+    const storageKey = options?.overrideStorageKey
+      || `doc_oficial_${numeroProcesso}_recurso_nao_provido`;
 
     // Salva mapa de anonimização na sessão (para reversão posterior)
     this._salvarMapaAnonimizacao(storageKey, tokenMap);
@@ -159,6 +162,43 @@ export class DocRecursoIndefNaoProvExtractor {
     }
   }
 
+  _normalizarTermosLgpdCustomizados(customTerms) {
+    if (!Array.isArray(customTerms)) return [];
+    const vistos = new Set();
+
+    return customTerms
+      .map((item) => {
+        if (typeof item === 'string') {
+          const termo = String(item).trim();
+          return termo ? { descricao: '', termo } : null;
+        }
+
+        if (!item || typeof item !== 'object') return null;
+        const termo = String(item.termo || item.valor || '').trim();
+        if (!termo) return null;
+        const descricao = String(item.descricao || item.desc || '').trim();
+        return { descricao, termo };
+      })
+      .filter(Boolean)
+      .filter((item) => {
+        const chave = item.termo.toLowerCase();
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      });
+  }
+
+  _aplicarTermosLgpdCustomizados(dados, listaLgpd, customTerms) {
+    const termos = this._normalizarTermosLgpdCustomizados(customTerms);
+    if (!termos.length) return;
+
+    termos.forEach((item, index) => {
+      const campo = `lgpd_custom_${index + 1}`;
+      dados[campo] = item.termo;
+      listaLgpd.push(campo);
+    });
+  }
+
   _tokenizarTextoParaIa(texto, dados, listaLgpd) {
     if (!texto) {
       return { textoParaIa: texto, tokenMap: { tokenToValue: {}, valueToToken: {} } };
@@ -208,7 +248,7 @@ export class DocRecursoIndefNaoProvExtractor {
 
     const aplicarTokenizacao = (campo, valor) => {
       if (valor == null || valor === '') return;
-      const tipo = fieldToTipo[campo] || 'DADO_LGPD';
+      const tipo = fieldToTipo[campo] || (campo.startsWith('lgpd_custom_') ? 'TERM_LGPD' : 'DADO_LGPD');
       const token = createToken(tipo, valor);
 
       const regexes = this._getLgpdRegexesForField(campo, valor, fieldToStrategy);
@@ -317,7 +357,7 @@ export class DocRecursoIndefNaoProvExtractor {
 
     const literalRegex = new RegExp(this._escapeRegExp(valor), 'g');
     const regexes = [literalRegex];
-    const estrategia = fieldToStrategy[campo];
+    const estrategia = fieldToStrategy[campo] || (campo.startsWith('lgpd_custom_') ? 'mixed' : undefined);
     if (!estrategia) return regexes;
 
     const digits = String(valor).replace(/\D/g, '');
