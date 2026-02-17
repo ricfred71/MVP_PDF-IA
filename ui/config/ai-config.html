@@ -76,7 +76,27 @@
 
         <div class="row">
           <div class="row-main">
-            <div class="title">Confirmar antes de enviar</div>
+            <div class="title">NotebookLM</div>
+            <div class="subtitle">Insira o link personalizado abaixo</div>
+          </div>
+          <label class="switch" title="Habilitar NotebookLM">
+            <input type="checkbox" id="provider-notebooklm">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="row" style="flex-direction: column; align-items: flex-start;">
+          <label for="provider-notebooklm-url" class="label" style="margin-bottom: 8px;">URL do NotebookLM:</label>
+          <input type="url" id="provider-notebooklm-url" class="input-url" placeholder="https://notebooklm.google.com/" value="https://notebooklm.google.com/">
+        </div>
+        <div class="row" style="flex-direction: column; align-items: flex-start;">
+          <label for="prompt-notebooklm" class="label" style="margin-bottom: 8px;">Prompt exclusivo para NotebookLM (opcional):</label>
+          <textarea id="prompt-notebooklm" class="textarea" rows="4" placeholder="Se deixado em branco, usará os prompts padrão configurados na aba Prompt"></textarea>
+          <p class="helper" style="margin-top: 4px; font-size: 11px;">Deixe em branco para usar o prompt padrão configurado para o tipo de documento.</p>
+        </div>
+        <div class="row">
+          <div class="row-main">
+            <div class="title\">Confirmar antes de enviar</div>
             <div class="subtitle">Quando ativado, a extensão só preenche o prompt (não clica em enviar).</div>
           </div>
           <label class="switch" title="Confirmar antes de enviar">

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "auxiliar/ANALISE_ESTRATEGIA_ANONIMIZACAO.md",
+                "file": "auxiliar/indice.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ANALISE_ESTRATEGIA_ANONIMIZACAO"
+              "title": "indice"
             }
           }
         ]
@@ -185,13 +185,16 @@
   },
   "active": "2da0cdce77ec0c6e",
   "lastOpenFiles": [
+    "auxiliar/marcas_types_CONVENCOES_NOMENCLATURA.md",
+    "auxiliar/indice.md",
+    "auxiliar/patents_tyupe_GUIA_RAPIDO.md",
+    "auxiliar/patents_tyupe_RESUMO.md",
+    "auxiliar/ANALISE_ESTRATEGIA_ANONIMIZACAO.md",
     "help/guia-usuario.html",
     "help/upload.html",
     "help",
     "auxiliar/DICIONARIO_VARIAVEIS.md",
     "auxiliar/lu254727iw7w.tmp",
-    "auxiliar/indice.md",
-    "auxiliar/ANALISE_ESTRATEGIA_ANONIMIZACAO.md",
     "Auxiliar/AJUSTES_PET_EXTRACTOR_PATENTES.md",
     "Auxiliar/indice.md",
     "Auxiliar/DICIONARIO_VARIAVEIS.md",
@@ -202,7 +205,6 @@
     "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas",
     "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors",
     "ExrtensãoPatentesMarca/ExtensaoPatente-Marca",
-    "ExrtensãoPatentesMarca",
     "Auxiliar/ANALISE_ESTRATEGIA_ANONIMIZACAO.md",
     "Readme.md"
   ]

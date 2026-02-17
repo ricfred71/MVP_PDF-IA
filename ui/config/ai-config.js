@@ -18,6 +18,10 @@ const DEFAULT_CONFIG = {
 		claude: false,
 		perplexity: false,
 		deepseek: false,
+		notebooklm: false,
+	},
+	urls: {
+		notebooklm: 'https://notebooklm.google.com/',
 	},
 	confirmBeforeSend: false,
 	prompts: {
@@ -25,6 +29,7 @@ const DEFAULT_CONFIG = {
 		marcasPetRecursoIndef: DEFAULT_PROMPT,
 		patentesDocRecursoIndefNaoProv: DEFAULT_PROMPT,
 		patentesPetRecursoIndef: DEFAULT_PROMPT,
+		notebooklm: '',
 	},
 };
 
@@ -48,6 +53,10 @@ async function loadConfig() {
 			...DEFAULT_CONFIG.providers,
 			...(cfg.providers || {}),
 		},
+		urls: {
+			...DEFAULT_CONFIG.urls,
+			...(cfg.urls || {}),
+		},
 		confirmBeforeSend: cfg.confirmBeforeSend === true,
 		prompts: {
 			...DEFAULT_CONFIG.prompts,
@@ -70,6 +79,10 @@ async function saveConfig(partial) {
 		providers: {
 			...current.providers,
 			...(partial.providers || {}),
+		},
+		urls: {
+			...current.urls,
+			...(partial.urls || {}),
 		},
 		prompts: {
 			...current.prompts,
@@ -104,6 +117,9 @@ async function init() {
 	$('provider-claude').checked = !!cfg.providers.claude;
 	$('provider-perplexity').checked = !!cfg.providers.perplexity;
 	$('provider-deepseek').checked = !!cfg.providers.deepseek;
+	$('provider-notebooklm').checked = !!cfg.providers.notebooklm;
+	$('provider-notebooklm-url').value = cfg.urls.notebooklm;
+	$('prompt-notebooklm').value = cfg.prompts.notebooklm;
 	$('confirm-before-send').checked = !!cfg.confirmBeforeSend;
 	$('prompt-marcas-doc-recurso-indef-naoProv').value = cfg.prompts.marcasDocRecursoIndefNaoProv;
 	$('prompt-marcas-pet-recurso-indef').value = cfg.prompts.marcasPetRecursoIndef;
@@ -131,6 +147,18 @@ async function init() {
 
 	$('provider-deepseek').addEventListener('change', () => {
 		scheduleSave(() => saveConfig({ providers: { deepseek: $('provider-deepseek').checked } }));
+	});
+
+	$('provider-notebooklm').addEventListener('change', () => {
+		scheduleSave(() => saveConfig({ providers: { notebooklm: $('provider-notebooklm').checked } }));
+	});
+
+	$('provider-notebooklm-url').addEventListener('input', () => {
+		scheduleSave(() => saveConfig({ urls: { notebooklm: $('provider-notebooklm-url').value } }));
+	});
+
+	$('prompt-notebooklm').addEventListener('input', () => {
+		scheduleSave(() => saveConfig({ prompts: { notebooklm: $('prompt-notebooklm').value } }));
 	});
 
 	$('confirm-before-send').addEventListener('change', () => {

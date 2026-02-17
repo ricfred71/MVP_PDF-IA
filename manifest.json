@@ -33,7 +33,11 @@
   "host_permissions": [
     "https://gemini.google.com/*",
     "https://chatgpt.com/*",
-    "https://claude.ai/*"
+    "https://claude.ai/*",
+    "https://www.perplexity.ai/*",
+    "https://chat.deepseek.com/*",
+    "https://notebooklm.google.com/*",
+    "https://*.notebooklm.google.com/*"
   ],
   
   "content_scripts": [
@@ -45,6 +49,26 @@
     {
       "matches": ["https://chatgpt.com/*"],
       "js": ["ai-integration/providers/chatgpt-content-script.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["ai-integration/providers/claude-content-script.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.perplexity.ai/*"],
+      "js": ["ai-integration/providers/perplexity-content-script.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chat.deepseek.com/*"],
+      "js": ["ai-integration/providers/deepseek-content-script.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://notebooklm.google.com/*", "https://*.notebooklm.google.com/*"],
+      "js": ["ai-integration/providers/notebooklm-content-script.js"],
       "run_at": "document_idle"
     }
   ],

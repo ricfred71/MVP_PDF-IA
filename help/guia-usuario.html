@@ -313,7 +313,7 @@
         <p>
           A extensão IPAS permite que você <strong>processe documentos PDF de patentes e marcas</strong>,
           extraia dados relevantes, <strong>anonimize informações sensíveis</strong> (conforme LGPD) e
-          envie o texto para IAs (ChatGPT, Gemini, Claude) para análise jurídica.
+          envie o texto para múltiplas IAs (Gemini, ChatGPT, Claude, Perplexity, DeepSeek, NotebookLM) para análise jurídica.
         </p>
         <div class="workflow">
           <div class="workflow-step">PDF do INPI (com dados pessoais)</div>
@@ -431,6 +431,67 @@
         </div>
       </section>
 
+      <!-- IAs Disponíveis -->
+      <section>
+        <h2>🤖 IAs Disponíveis</h2>
+
+        <p>
+          A extensão suporta múltiplas plataformas de IA para análise jurídica. Você pode habilitar uma ou várias nas Opções.
+        </p>
+
+        <div class="button-guide">
+          <div class="button-icon">🔵</div>
+          <div class="button-content">
+            <h4>Gemini (Google)</h4>
+            <p>IA gratuita do Google com bom desempenho em análise de documentos jurídicos. Vem habilitada por padrão.</p>
+          </div>
+        </div>
+
+        <div class="button-guide">
+          <div class="button-icon">🟢</div>
+          <div class="button-content">
+            <h4>ChatGPT (OpenAI)</h4>
+            <p>IA poderosa da OpenAI. Requer conta e acesso a chatgpt.com. Excelente para análises detalhadas.</p>
+          </div>
+        </div>
+
+        <div class="button-guide">
+          <div class="button-icon">🟠</div>
+          <div class="button-content">
+            <h4>Claude (Anthropic)</h4>
+            <p>IA avançada com foco em precisão. Requer acesso a claude.ai. Ótima para compreensão de contexto jurídico.</p>
+          </div>
+        </div>
+
+        <div class="button-guide">
+          <div class="button-icon">🟡</div>
+          <div class="button-content">
+            <h4>Perplexity</h4>
+            <p>IA com capacidade de pesquisa. Acessa perplexity.ai. Útil para análises com referências externas.</p>
+          </div>
+        </div>
+
+        <div class="button-guide">
+          <div class="button-icon">🔴</div>
+          <div class="button-content">
+            <h4>DeepSeek</h4>
+            <p>IA emergente com bom desempenho. Acessa chat.deepseek.com. Alternativa eficiente para análise de texto.</p>
+          </div>
+        </div>
+
+        <div class="button-guide">
+          <div class="button-icon">📓</div>
+          <div class="button-content">
+            <h4>NotebookLM (Google)</h4>
+            <p>Plataforma de análise de documentos do Google. URL customizável para acessar notebooks específicos. Oferece prompt exclusivo configurável.</p>
+          </div>
+        </div>
+
+        <div class="highlight">
+          <strong>💡 Dica:</strong> Para melhor cobertura, habilite pelo menos 2-3 IAs diferentes. Cada uma pode gerar insights únicos sobre o mesmo documento jurídico.
+        </div>
+      </section>
+
       <!-- Campos de Entrada -->
       <section>
         <h2>📝 Campos de Entrada (Termos Customizados)</h2>
@@ -486,6 +547,68 @@
           <strong>✅ Benefício:</strong> A IA compreende o contexto (sabe que [REQUERENTE_1] é uma pessoa) sem
           saber quem é. Suas respostas são mais precisas e seus dados estão protegidos.
         </div>
+      </section>
+
+      <!-- Configuração de IAs -->
+      <section>
+        <h2>⚙️ Configuração de IAs (Opções)</h2>
+
+        <p>
+          Clique no ícone de <strong>engrenagem (⚙️)</strong> na barra de ferramentas da extensão para acessar as Opções.
+          Aqui você pode personalizar como as IAs funcionam.
+        </p>
+
+        <h3>Abas de Configuração</h3>
+        
+        <h4>Aba "IAs"</h4>
+        <p>Configure quais IAs serão abertas quando você clicar no botão "4 - Abrir IAs":</p>
+        <ul>
+          <li><strong>Gemini</strong> - Habilitada por padrão</li>
+          <li><strong>ChatGPT</strong> - Requiere acesso a chatgpt.com</li>
+          <li><strong>Claude</strong> - Requer acesso a claude.ai</li>
+          <li><strong>Perplexity</strong> - Acessa perplexity.ai</li>
+          <li><strong>DeepSeek</strong> - Acessa chat.deepseek.com</li>
+          <li><strong>NotebookLM</strong> - Customizável (veja opções abaixo)</li>
+        </ul>
+
+        <h4>Configurações do NotebookLM</h4>
+        <p>Se habilitar o NotebookLM, você pode:</p>
+        <ol>
+          <li><strong>Definir URL Customizada:</strong> Cole a URL de um notebook específico se deseja usar sempre o mesmo (ex: https://notebooklm.google.com/notebook/0378d129-bef9-40a9-b337-59b4bd677200)</li>
+          <li><strong>Definir Prompt Exclusivo:</strong> Opcionalmente, defina um prompt diferente para o NotebookLM. Se deixado em branco, usará o prompt padrão.</li>
+        </ol>
+
+        <div class="highlight">
+          <strong>💡 Exemplo de Uso:</strong><br>
+          Se você tem um notebook "Análise de Recursos" no NotebookLM que já contém contexto sobre jurisprudência,
+          você pode colar sua URL nas opções e usar um prompt como: "Analise este novo caso considerando a jurisprudência já conhecida."
+          Enquanto outras IAs recebem o prompt genérico padrão.
+        </div>
+
+        <h4>Aba "Prompt"</h4>
+        <p>Customize os prompts para cada tipo de documento:</p>
+        <ul>
+          <li>Marcas &gt; Documento Oficial &gt; Recurso contra Indeferimento — Não Provido</li>
+          <li>Marcas &gt; Petição &gt; Recurso contra Indeferimento</li>
+          <li>Patentes &gt; Documento Oficial &gt; Recurso contra Indeferimento — Não Provido</li>
+          <li>Patentes &gt; Petição &gt; Recurso contra Indeferimento</li>
+        </ul>
+
+        <p>
+          <strong>Como usar:</strong> Clique em cada item para expandir, edite o texto do prompt e as mudanças serão salvas automaticamente.
+          O prompt será usado para TODAS as IAs (exceto NotebookLM se um prompt exclusivo estiver configurado).
+        </p>
+
+        <div class="tip">
+          <strong>✅ Dica:</strong> Personalize o prompt conforme sua prática jurídica. Adicione instruções como
+          "Foque em argumentos sobre anterioridade" ou "Destaque riscos de invalidade".
+        </div>
+
+        <h3>Confirmação Antes de Enviar</h3>
+        <p>
+          Quando habilitado, a extensão apenas preenche o prompt nas IAs mas NÃO clica automáticamente em "Enviar".
+          Você pode revisar e fazer ajustes antes de enviar. Recomendado para garantir controle total.
+        </p>
       </section>
 
       <!-- Status e Progresso -->
@@ -589,8 +712,39 @@
         <div class="faq-item">
           <strong>P: Como configurar as IAs?</strong>
           <p>
-            R: Clique no ícone de <strong>engrenagem (⚙️)</strong> na extensão para abrir "Opções". Lá você pode
-            configurar URLs das IAs (ChatGPT, Gemini, Claude) e tokens de acesso se necessário.
+            R: Clique no ícone de <strong>engrenagem (⚙️)</strong> na extensão para abrir "Opções". Lá você pode:
+          </p>
+          <ul>
+            <li>Habilitar/desabilitar as IAs desejadas: Gemini, ChatGPT, Claude, Perplexity, DeepSeek e NotebookLM</li>
+            <li>Configurar URL personalizada para NotebookLM (padrão: https://notebooklm.google.com/)</li>
+            <li>Definir um prompt exclusivo para NotebookLM (se deixado em branco, usa o prompt padrão)</li>
+            <li>Editar prompts customizados para cada tipo de documento</li>
+          </ul>
+        </div>
+
+        <div class="faq-item">
+          <strong>P: O que é o prompt exclusivo do NotebookLM?</strong>
+          <p>
+            R: O NotebookLM oferece a opção de usar um prompt diferente dos demais. Se você deixar em branco,
+            ele usará o prompt padrão configurado. Isso é útil se você quer instruções diferentes para o NotebookLM
+            comparado às outras IAs.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <strong>P: Posso abrir múltiplas IAs ao mesmo tempo?</strong>
+          <p>
+            R: Sim! Você pode habilitar quantas IAs desejar nas Opções e todas serão abertas em abas separadas
+            quando você clicar em "4 - Abrir IAs (preencher prompt)". Cada uma receberá o texto anonimizado
+            preenchido automaticamente no campo de chat.
+          </p>
+        </div>
+
+        <div class="faq-item">
+          <strong>P: Como usar uma instância específica do NotebookLM?</strong>
+          <p>
+            R: Se você tem um notebook específico que deseja usar, copie sua URL (ex: https://notebooklm.google.com/notebook/0378d129-bef9...)
+            e cole-a no campo "URL do NotebookLM" nas Opções. A próxima vez que clicar no botão 4, esse notebook será aberto.
           </p>
         </div>
 

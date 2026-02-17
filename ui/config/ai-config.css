@@ -110,6 +110,20 @@ h1 {
   line-height: 1.35;
 }
 
+.input-url {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d6d6df;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.input-url:focus {
+  outline: none;
+  border-color: #2ea043;
+  box-shadow: 0 0 4px rgba(46, 160, 67, 0.2);
+}
 
 .footer-row {
   display: flex;

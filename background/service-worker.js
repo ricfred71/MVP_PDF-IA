@@ -23,6 +23,13 @@ const AI_DEFAULT_CONFIG = {
   providers: {
     gemini: true,
     chatgpt: false,
+    claude: false,
+    perplexity: false,
+    deepseek: false,
+    notebooklm: false,
+  },
+  urls: {
+    notebooklm: 'https://notebooklm.google.com/',
   },
   confirmBeforeSend: false,
   prompts: {
@@ -30,6 +37,7 @@ const AI_DEFAULT_CONFIG = {
     marcasPetRecursoIndef: AI_DEFAULT_PROMPT,
     patentesDocRecursoIndefNaoProv: AI_DEFAULT_PROMPT,
     patentesPetRecursoIndef: AI_DEFAULT_PROMPT,
+    notebooklm: '',
   },
 };
 
@@ -63,6 +71,10 @@ async function getAiConfig() {
     providers: {
       ...AI_DEFAULT_CONFIG.providers,
       ...(cfg.providers || {}),
+    },
+    urls: {
+      ...AI_DEFAULT_CONFIG.urls,
+      ...(cfg.urls || {}),
     },
     confirmBeforeSend: cfg.confirmBeforeSend === true,
     prompts: mergedPrompts,
@@ -192,6 +204,10 @@ async function openAiTabsAndSend(storageKey) {
   const targets = [];
   if (cfg.providers.gemini) targets.push({ provider: 'gemini', url: 'https://gemini.google.com/app' });
   if (cfg.providers.chatgpt) targets.push({ provider: 'chatgpt', url: 'https://chatgpt.com/' });
+  if (cfg.providers.claude) targets.push({ provider: 'claude', url: 'https://claude.ai/new' });
+  if (cfg.providers.perplexity) targets.push({ provider: 'perplexity', url: 'https://www.perplexity.ai/' });
+  if (cfg.providers.deepseek) targets.push({ provider: 'deepseek', url: 'https://chat.deepseek.com/' });
+  if (cfg.providers.notebooklm) targets.push({ provider: 'notebooklm', url: cfg.urls?.notebooklm || 'https://notebooklm.google.com/' });
 
   if (targets.length === 0) {
     throw new Error('Nenhuma IA selecionada nas opções');
@@ -203,7 +219,14 @@ async function openAiTabsAndSend(storageKey) {
     await waitForTabComplete(tab.id);
     // pequena folga para o site renderizar o input
     await new Promise((r) => setTimeout(r, 800));
-    const resp = await sendToAiTab(tab.id, { content, delayMs, send: shouldSend });
+    
+    // Para NotebookLM, usar prompt exclusivo se configurado
+    let finalContent = content;
+    if (t.provider === 'notebooklm' && cfg.prompts?.notebooklm?.trim?.()) {
+      finalContent = buildAiMessage(cfg.prompts.notebooklm, texto);
+    }
+    
+    const resp = await sendToAiTab(tab.id, { content: finalContent, delayMs, send: shouldSend });
     results.push({ provider: t.provider, tabId: tab.id, response: resp });
   }
 
