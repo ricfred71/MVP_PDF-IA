@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "MVP: uso de IA para tratar pdfs",
   "author": "nicol@inpi.gov.br",
-  "version": "3.0.0",
-  "description": "Extensão standalone para análise de PDFs com IA e proteção LGPD - 08/02/2026",
+  "version": "3.0.1",
+  "description": "Extensão standalone para análise de PDFs com IA e proteção LGPD - 17/02/2026",
   
   "icons": {
     "16": "assets/images/icon16.png",

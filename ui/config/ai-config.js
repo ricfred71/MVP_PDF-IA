@@ -15,6 +15,9 @@ const DEFAULT_CONFIG = {
 	providers: {
 		gemini: true,
 		chatgpt: false,
+		claude: false,
+		perplexity: false,
+		deepseek: false,
 	},
 	confirmBeforeSend: false,
 	prompts: {
@@ -98,6 +101,9 @@ async function init() {
 
 	$('provider-gemini').checked = !!cfg.providers.gemini;
 	$('provider-chatgpt').checked = !!cfg.providers.chatgpt;
+	$('provider-claude').checked = !!cfg.providers.claude;
+	$('provider-perplexity').checked = !!cfg.providers.perplexity;
+	$('provider-deepseek').checked = !!cfg.providers.deepseek;
 	$('confirm-before-send').checked = !!cfg.confirmBeforeSend;
 	$('prompt-marcas-doc-recurso-indef-naoProv').value = cfg.prompts.marcasDocRecursoIndefNaoProv;
 	$('prompt-marcas-pet-recurso-indef').value = cfg.prompts.marcasPetRecursoIndef;
@@ -113,6 +119,18 @@ async function init() {
 
 	$('provider-chatgpt').addEventListener('change', () => {
 		scheduleSave(() => saveConfig({ providers: { chatgpt: $('provider-chatgpt').checked } }));
+	});
+
+	$('provider-claude').addEventListener('change', () => {
+		scheduleSave(() => saveConfig({ providers: { claude: $('provider-claude').checked } }));
+	});
+
+	$('provider-perplexity').addEventListener('change', () => {
+		scheduleSave(() => saveConfig({ providers: { perplexity: $('provider-perplexity').checked } }));
+	});
+
+	$('provider-deepseek').addEventListener('change', () => {
+		scheduleSave(() => saveConfig({ providers: { deepseek: $('provider-deepseek').checked } }));
 	});
 
 	$('confirm-before-send').addEventListener('change', () => {
