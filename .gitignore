@@ -62,3 +62,4 @@ opencode.json
 e2e/
 playwright.config.js
 playwright.config.ts
+.obsidian/workspace.json

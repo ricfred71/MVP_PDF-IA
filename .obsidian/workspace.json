@@ -185,6 +185,10 @@
   },
   "active": "2da0cdce77ec0c6e",
   "lastOpenFiles": [
+    "ai-integration/providers/perplexity-content-script.js",
+    "ai-integration/providers/notebooklm-content-script.js",
+    "ai-integration/providers/deepseek-content-script.js",
+    "ai-integration/providers/claude-content-script.js",
     "auxiliar/marcas_types_CONVENCOES_NOMENCLATURA.md",
     "auxiliar/indice.md",
     "auxiliar/patents_tyupe_GUIA_RAPIDO.md",
@@ -202,9 +206,6 @@
     "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas/types/doc_recurso-indef--naoProv/doc_schema.js.md",
     "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas/types/doc_recurso-indef--naoProv",
     "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas/types",
-    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors/marcas",
-    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca/sectors",
-    "ExrtensãoPatentesMarca/ExtensaoPatente-Marca",
     "Auxiliar/ANALISE_ESTRATEGIA_ANONIMIZACAO.md",
     "Readme.md"
   ]
