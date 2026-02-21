@@ -57,6 +57,7 @@
 
   async function clickSend() {
     const btn = await waitForAny([
+      '#composer-submit-button',
       'button[data-testid="send-button"]',
       'button[aria-label*="Send" i]',
       'button[aria-label*="Enviar" i]',
@@ -65,6 +66,10 @@
 
     if (!btn) {
       throw new Error('Botão de enviar não encontrado');
+    }
+
+    if (btn.disabled) {
+      throw new Error('Botão de enviar está desativado');
     }
 
     btn.click();

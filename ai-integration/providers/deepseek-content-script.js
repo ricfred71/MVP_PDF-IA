@@ -69,8 +69,38 @@
       'button[type="submit"]',
       'button[data-testid*="send" i]'
     ], 15000);
-    if (!btn) throw new Error('Botão de enviar não encontrado');
-    btn.click();
+    if (btn) {
+      if (!btn.disabled) {
+        btn.click();
+        return;
+      }
+    }
+
+    const sendIconPath = document.querySelector('svg[width="16"][height="16"] path[d="M8.3125 0.981587C8.66767 1.0545 8.97902 1.20558 9.2627 1.43374C9.48724 1.61438 9.73029 1.85933 9.97949 2.10854L14.707 6.83608L13.293 8.25014L9 3.95717V15.0431H7V3.95717L2.70703 8.25014L1.29297 6.83608L6.02051 2.10854C6.26971 1.85933 6.51277 1.61438 6.7373 1.43374C6.97662 1.24126 7.28445 1.04542 7.6875 0.981587C7.8973 0.94841 8.1031 0.956564 8.3125 0.981587Z"]');
+    if (sendIconPath) {
+      const iconButton = sendIconPath.closest('div[role="button"], .ds-icon-button, button');
+      if (iconButton) {
+        iconButton.click();
+        return;
+      }
+    }
+
+    const possibleButtons = document.querySelectorAll('div[role="button"], .ds-icon-button, button');
+    for (const button of possibleButtons) {
+      const icon = button.querySelector('svg[width="16"][height="16"]');
+      if (icon && icon.innerHTML.includes('M8.3125 0.981587')) {
+        button.click();
+        return;
+      }
+    }
+
+    const specificButton = document.querySelector('._7436101.bcc55ca1.ds-icon-button.ds-icon-button--l.ds-icon-button--sizing-container');
+    if (specificButton) {
+      specificButton.click();
+      return;
+    }
+
+    throw new Error('Botão de enviar não encontrado');
   }
 
   async function fillAndMaybeSend(payload) {

@@ -85,12 +85,22 @@
 
   async function clickSend() {
     const btn = await waitForAny([
+      'button[aria-label="Enviar"]',
       'button[aria-label*="Send" i]',
       'button[aria-label*="Enviar" i]',
       'button[type="submit"]',
       'button[data-testid*="send" i]'
     ], 15000);
     if (!btn) throw new Error('Botão de enviar não encontrado');
+
+    btn.disabled = false;
+    btn.removeAttribute('disabled');
+    btn.classList.remove('pointer-events-none', 'opacity-50', 'cursor-default');
+    btn.classList.add('cursor-pointer');
+    btn.style.pointerEvents = 'auto';
+    btn.style.opacity = '1';
+
+    await sleep(50);
     btn.click();
   }
 

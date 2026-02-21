@@ -29,7 +29,7 @@ const AI_DEFAULT_CONFIG = {
     notebooklm: false,
   },
   urls: {
-    notebooklm: 'https://notebooklm.google.com/',
+    notebooklm: 'https://notebooklm.google.com/notebook/0378d129-bef9-40a9-b337-59b4bd677200/',
   },
   confirmBeforeSend: false,
   prompts: {
@@ -194,12 +194,7 @@ async function openAiTabsAndSend(storageKey) {
   const prompt = promptKey ? cfg.prompts?.[promptKey] : '';
   const content = buildAiMessage(prompt || getFallbackPrompt(cfg.prompts), texto);
   const delayMs = 5000;
-  // ENVIO AUTOMÁTICO DESABILITADO (Sprint atual)
-  // Motivo: neste momento não vamos auto-enviar para as IAs.
-  // Para reativar:
-  //   const shouldSend = !cfg.confirmBeforeSend;
-  // e enviar no payload: { send: shouldSend }
-  const shouldSend = false;
+  const shouldSend = !cfg.confirmBeforeSend;
 
   const targets = [];
   if (cfg.providers.gemini) targets.push({ provider: 'gemini', url: 'https://gemini.google.com/app' });
@@ -207,7 +202,7 @@ async function openAiTabsAndSend(storageKey) {
   if (cfg.providers.claude) targets.push({ provider: 'claude', url: 'https://claude.ai/new' });
   if (cfg.providers.perplexity) targets.push({ provider: 'perplexity', url: 'https://www.perplexity.ai/' });
   if (cfg.providers.deepseek) targets.push({ provider: 'deepseek', url: 'https://chat.deepseek.com/' });
-  if (cfg.providers.notebooklm) targets.push({ provider: 'notebooklm', url: cfg.urls?.notebooklm || 'https://notebooklm.google.com/' });
+  if (cfg.providers.notebooklm) targets.push({ provider: 'notebooklm', url: cfg.urls?.notebooklm || 'https://notebooklm.google.com/notebook/0378d129-bef9-40a9-b337-59b4bd677200/' });
 
   if (targets.length === 0) {
     throw new Error('Nenhuma IA selecionada nas opções');
@@ -215,6 +210,7 @@ async function openAiTabsAndSend(storageKey) {
 
   const results = [];
   for (const t of targets) {
+    console.log(`[ServiceWorker][AI][${t.provider}] Abrindo aba`, { url: t.url, shouldSend, delayMs });
     const tab = await createTab(t.url);
     await waitForTabComplete(tab.id);
     // pequena folga para o site renderizar o input
@@ -227,6 +223,14 @@ async function openAiTabsAndSend(storageKey) {
     }
     
     const resp = await sendToAiTab(tab.id, { content: finalContent, delayMs, send: shouldSend });
+    const ok = resp?.status === 'ok';
+    const level = ok ? 'log' : 'warn';
+    console[level](`[ServiceWorker][AI][${t.provider}] Resultado do envio`, {
+      status: resp?.status || 'unknown',
+      message: resp?.message || null,
+      tabId: tab.id,
+      shouldSend,
+    });
     results.push({ provider: t.provider, tabId: tab.id, response: resp });
   }
 
@@ -271,9 +275,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           const storageKey = message?.storageKey;
           if (!storageKey) throw new Error('storageKey ausente');
+          console.log('[ServiceWorker][OPEN_AI_TABS] Iniciando fluxo', { storageKey });
           const results = await openAiTabsAndSend(storageKey);
+          console.log('[ServiceWorker][OPEN_AI_TABS] Fluxo concluído', {
+            storageKey,
+            providers: results.map((r) => r.provider),
+            success: results.filter((r) => r.response?.status === 'ok').length,
+            failed: results.filter((r) => r.response?.status !== 'ok').length,
+          });
           sendResponse({ status: 'ok', results });
         } catch (e) {
+          console.error('[ServiceWorker][OPEN_AI_TABS] Erro no fluxo', {
+            storageKey: message?.storageKey,
+            message: e?.message || String(e),
+          });
           sendResponse({ status: 'error', message: e?.message || String(e) });
         }
       })();

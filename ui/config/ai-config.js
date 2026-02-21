@@ -21,7 +21,10 @@ const DEFAULT_CONFIG = {
 		notebooklm: false,
 	},
 	urls: {
-		notebooklm: 'https://notebooklm.google.com/',
+
+		//notebooklm é um serviço web, então a URL é configurável para facilitar testes locais ou futuros endpoints alternativos
+		//este é específico para teste do MVP, apontando para um notebook de exemplo já configurado. Usuários finais devem configurar com a URL do notebook que desejarem usar.
+		notebooklm: 'https://notebooklm.google.com/notebook/0378d129-bef9-40a9-b337-59b4bd677200/notebook/0378d129-bef9-40a9-b337-59b4bd677200',
 	},
 	confirmBeforeSend: false,
 	prompts: {

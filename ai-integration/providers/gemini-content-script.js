@@ -58,11 +58,15 @@
 
   async function clickSend() {
     const btn = await waitForAny([
+      'button[aria-label="Enviar mensagem"]',
+      'button[aria-label="Send message"]',
+      '.send-button-container button',
       'button[aria-label*="Send" i]',
       'button[aria-label*="Enviar" i]',
       'button[type="submit"]'
     ], 15000);
     if (!btn) throw new Error('Botão de enviar não encontrado');
+    if (btn.disabled) throw new Error('Botão de enviar está desativado');
     btn.click();
   }
 
